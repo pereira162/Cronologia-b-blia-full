@@ -5,6 +5,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client'; // Importa o novo cliente ReactDOM para React 18+
 import App from './App'; // Importa o componente principal da aplicação
+import './index.css'; // Importa os estilos globais, incluindo Tailwind CSS
 
 // Obtém o elemento DOM onde a aplicação React será montada.
 const rootElement = document.getElementById('root');
