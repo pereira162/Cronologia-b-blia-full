@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- Define o idioma do documento como Português Brasileiro -->
+<html lang="pt-BR">
+<head>
+  <!-- Define a codificação de caracteres para UTF-8, suportando acentos e caracteres especiais -->
+  <meta charset="UTF-8">
+  <!-- Configura a viewport para design responsivo, ajustando a largura e escala inicial -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Título da página que aparece na aba do navegador -->
+  <title>Gênesis Interativo</title>
+  <!-- Importa o Tailwind CSS via CDN para estilização rápida -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Importa a fonte Inter do Google Fonts (opcional, mas melhora a estética) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Bloco de estilos CSS customizados e variáveis de tema -->
+  <style>
+    /* Define variáveis CSS no elemento raiz (:root) para temas globais */
+    :root {
+      /* Cores base do tema padrão (Escuro Moderno) */
+      --app-bg-color: #0f172a; /* Cor de fundo principal da aplicação */
+      --header-bg-color: #1e3a8a; /* Cor de fundo do cabeçalho */
+      --timeline-gradient-start: #3b82f6; /* Início do gradiente da linha do tempo */
+      --timeline-gradient-end: #60a5fa; /* Fim do gradiente da linha do tempo */
+      --text-color: #e2e8f0; /* Cor padrão do texto */
+      --accent-color: #60a5fa; /* Cor de destaque (links, ícones ativos, etc.) */
+      --button-bg-color: #2563eb; /* Cor de fundo de botões */
+      --button-hover-bg-color: #1d4ed8; /* Cor de fundo de botões ao passar o mouse */
+      --card-bg-color: #1e293b; /* Cor de fundo de cards/modais */
+      --card-header-color: #93c5fd; /* Cor do texto do cabeçalho de cards */
+      --border-color: #334155; /* Cor de bordas */
+      --scrollbar-track-color: #1a202c; /* Cor da trilha da barra de rolagem */
+      --scrollbar-thumb-color: #4a5568; /* Cor do "polegar" da barra de rolagem */
+      --scrollbar-thumb-hover-color: #718096; /* Cor do "polegar" ao passar o mouse */
+      
+      /* Cores específicas da linha do tempo */
+      --timeline-year-marker-major-color: var(--text-color); /* Marcadores de ano principais */
+      --timeline-year-marker-minor-color: var(--accent-color); /* Marcadores de ano secundários */
+      --timeline-grid-line-color: rgba(255, 255, 255, 0.1); /* Linhas de grade */
+      --person-line-active-color: #facc15; /* Linhas de vida ativas de personagens */
+      --event-line-color: #f472b6; /* Linhas de evento */
+    }
+
+    /* Estilização customizada da barra de rolagem para navegadores WebKit (Chrome, Safari) */
+    ::-webkit-scrollbar {
+      width: 8px; /* Largura da barra de rolagem vertical */
+      height: 8px; /* Altura da barra de rolagem horizontal */
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--scrollbar-track-color); /* Cor da trilha */
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb-color); /* Cor do "polegar" */
+      border-radius: 4px; /* Bordas arredondadas para o "polegar" */
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--scrollbar-thumb-hover-color); /* Cor do "polegar" ao passar o mouse */
+    }
+
+    /* Garante que html, body e #root ocupem toda a altura da tela */
+    html, body, #root {
+      height: 100%;
+      margin: 0; /* Remove margens padrão */
+      font-family: 'Inter', sans-serif; /* Define uma fonte limpa e moderna */
+      color: var(--text-color); /* Aplica a cor de texto padrão globalmente */
+    }
+    body {
+      background-color: var(--app-bg-color); /* Aplica a cor de fundo principal ao body */
+    }
+
+    /* Classe utilitária para o gradiente de fundo da linha do tempo */
+    .timeline-bg-gradient {
+      background: linear-gradient(135deg, var(--timeline-gradient-start) 0%, var(--timeline-gradient-end) 100%);
+    }
+    /* Classe utilitária para o fundo do cabeçalho de anos */
+    .year-header-bg {
+      background-color: var(--header-bg-color);
+    }
+    
+    /* Garante que os cards (modais) usem as variáveis de tema */
+    .modal-card-bg {
+      background-color: var(--card-bg-color);
+    }
+    .modal-card-header {
+      color: var(--card-header-color);
+    }
+    .modal-button-primary {
+      background-color: var(--button-bg-color);
+    }
+    .modal-button-primary:hover {
+      background-color: var(--button-hover-bg-color);
+    }
+
+    /* Estilização para checkboxes, usando variáveis de tema */
+    .input-checkbox-themed {
+      color: var(--accent-color); /* Cor do "check" */
+      background-color: var(--app-bg-color); /* Fundo do checkbox */
+      border-color: var(--border-color); /* Cor da borda do checkbox */
+    }
+    .input-checkbox-themed:focus {
+      /* Efeito de anel ao focar, usando cores do tema */
+      --tw-ring-color: var(--accent-color); /* Cor do anel de foco do Tailwind */
+       box-shadow: 0 0 0 2px var(--app-bg-color), 0 0 0 4px var(--accent-color); /* Sombra customizada para o foco */
+    }
+  </style>
+<!-- Mapa de importação para módulos ES, permitindo usar nomes de pacotes como 'react' diretamente no navegador -->
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "@tailwindcss/postcss": "https://esm.sh/@tailwindcss/postcss@^4.1.7",
+    "autoprefixer": "https://esm.sh/autoprefixer@^10.4.21",
+    "path": "https://esm.sh/path@^0.12.7",
+    "vite": "https://esm.sh/vite@^6.3.5",
+    "url": "https://esm.sh/url@^0.11.4"
+  }
+}
+</script>
+</head>
+<body>
+  <!-- Elemento div onde a aplicação React será montada -->
+  <div id="root"></div>
+  <!-- Script principal da aplicação, do tipo module para suportar importações ES6 -->
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html><link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>
+<link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>
+<link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>
