@@ -68,17 +68,8 @@ export interface Theme {
   colors: ThemeColors; 
 }
 
-export interface SiblingExpansionIconProps {
-  expanded: boolean; 
-  onClick: (e: React.MouseEvent) => void; 
-  className?: string; 
-}
-
-export interface ToggleCharacterVisibilityIconProps {
-  isVisible: boolean; 
-  onClick: (e: React.MouseEvent) => void; 
-  className?: string; 
-}
+// Removed SiblingExpansionIconProps
+// Removed ToggleCharacterVisibilityIconProps
 
 export interface PersonVisibilityPanelIconProps {
   isOpen: boolean; 
@@ -90,12 +81,7 @@ export interface ToggleBarControlsIconProps {
   className?: string; 
 }
 
-export interface LifeLineToggleIconProps {
-  active: boolean; 
-  onClick: (e: React.MouseEvent) => void; 
-  className?: string; 
-  globalUiScale?: number; // Adicionado para escalar o ícone
-}
+// Removed LifeLineToggleIconProps
 
 // Props para o ícone de alternar a visibilidade do painel de configurações.
 export interface ToggleConfigsIconProps {
@@ -103,14 +89,7 @@ export interface ToggleConfigsIconProps {
   className?: string;
 }
 
-// Props para o ícone de "pin" (usado para fixar a régua de anos).
-export interface PinIconProps {
-  isFixed: boolean; // Indica se o elemento está fixo/sticky
-  onClick: (e: React.MouseEvent) => void;
-  className?: string;
-  title?: string;
-  style?: React.CSSProperties; // Para permitir z-index
-}
+// Removed PinIconProps
 
 // Props esperadas pelo componente TimelineView
 export interface TimelineViewProps {

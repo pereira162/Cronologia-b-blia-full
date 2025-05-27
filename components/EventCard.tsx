@@ -4,7 +4,8 @@
 import React from 'react';
 import { BibleEvent, Person } from '../types'; // Importa os tipos BibleEvent e Person
 import { peopleData } from '../data'; // Importa os dados de todas as pessoas para encontrar os participantes
-import { FONT_SIZE_CLASSES, SEMANTIC_COLOR_VARS, Z_INDICES } from '../stylingConstants'; // Importa constantes de estilização
+import { FONT_SIZE_CLASSES, Z_INDICES } from '../stylingConstants'; // Importa constantes de estilização
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 // Props esperadas pelo componente EventCard
 interface EventCardProps {
@@ -29,42 +30,35 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClose, onSelectPerson })
     >
       {/* Conteúdo do card, com prevenção de propagação de clique */}
       <div 
-        className="p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" 
-        style={{
-          backgroundColor: SEMANTIC_COLOR_VARS.cardBg, 
-          borderColor: SEMANTIC_COLOR_VARS.borderColor, 
-          borderWidth: '1px'
-        }}
+        className="p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto bg-theme-card-bg border-theme-border border"
         onClick={(e) => e.stopPropagation()} // Impede que o clique dentro do card feche o modal
       >
         {/* Cabeçalho do card: Nome do evento e botão de fechar */}
         <div className="flex justify-between items-center mb-4">
           <h2 
-            className={`${FONT_SIZE_CLASSES['3xl']} font-bold`} 
-            style={{color: SEMANTIC_COLOR_VARS.cardHeaderColor}} // Nome do evento
+            className={`${FONT_SIZE_CLASSES['3xl']} font-bold text-theme-card-header`}
           >
             {event.name}
           </h2>
           <button 
             onClick={onClose} // Botão para fechar o card
-            className={`hover:text-white ${FONT_SIZE_CLASSES['2xl']}`} 
-            style={{color: SEMANTIC_COLOR_VARS.textColor}} // Estilo do botão de fechar (um 'X')
+            className={`text-theme-text hover:text-theme-accent ${FONT_SIZE_CLASSES['2xl']}`}
           >
-            &times;
+            <XMarkIcon className="w-6 h-6" />
           </button>
         </div>
 
         {/* Informações adicionais: Ano do evento e Capítulos de Gênesis */}
-        {event.year !== undefined && <p className={`${FONT_SIZE_CLASSES.sm} mb-1`} style={{color: SEMANTIC_COLOR_VARS.accentColor}}>Ano (Relativo Adão=0): {event.year}</p>}
-        {event.genesisChapter && <p className={`${FONT_SIZE_CLASSES.sm} mb-3`} style={{color: SEMANTIC_COLOR_VARS.textColor}}>Gênesis Capítulos: {event.genesisChapter}</p>}
+        {event.year !== undefined && <p className={`${FONT_SIZE_CLASSES.sm} mb-1 text-theme-accent`}>Ano (Relativo Adão=0): {event.year}</p>}
+        {event.genesisChapter && <p className={`${FONT_SIZE_CLASSES.sm} mb-3 text-theme-text`}>Gênesis Capítulos: {event.genesisChapter}</p>}
         
         {/* Descrição do evento */}
-        <p className="mb-4 p-3 rounded" style={{backgroundColor: SEMANTIC_COLOR_VARS.appBg, color: SEMANTIC_COLOR_VARS.textColor}}>{event.description}</p>
+        <p className="mb-4 p-3 rounded bg-theme-app-bg text-theme-text">{event.description}</p>
         
         {/* Lista de participantes do evento */}
         {participants.length > 0 && (
           <div className="mt-4">
-            <h3 className={`${FONT_SIZE_CLASSES.xl} font-semibold mb-2`} style={{color: SEMANTIC_COLOR_VARS.cardHeaderColor}}>Participantes:</h3>
+            <h3 className={`${FONT_SIZE_CLASSES.xl} font-semibold mb-2 text-theme-card-header`}>Participantes:</h3>
             <ul className={`list-disc list-inside space-y-1 ${FONT_SIZE_CLASSES.sm}`}>
               {participants.map(person => (
                 <li key={person.id}>
@@ -74,8 +68,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClose, onSelectPerson })
                       onClose(); // Fecha o card do evento atual
                       onSelectPerson(person); // Abre o card do personagem selecionado
                     }} 
-                    className="underline hover:opacity-75" // Estilo de link
-                    style={{color: SEMANTIC_COLOR_VARS.accentColor}}
+                    className="underline hover:opacity-75 text-theme-accent"
                   >
                     {person.name}
                   </button>
@@ -88,11 +81,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onClose, onSelectPerson })
         {/* Botão principal de ação para fechar o card */}
          <button 
           onClick={onClose} 
-          className="mt-6 text-white font-semibold py-2 px-4 rounded w-full transition-colors duration-150"
-          style={{backgroundColor: SEMANTIC_COLOR_VARS.buttonBg}}
-          // Efeitos de hover para o botão
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = SEMANTIC_COLOR_VARS.buttonHoverBg}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = SEMANTIC_COLOR_VARS.buttonBg}
+          className="mt-6 text-white font-semibold py-2 px-4 rounded w-full transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg"
         >
           Fechar
         </button>

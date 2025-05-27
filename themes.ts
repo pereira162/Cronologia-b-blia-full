@@ -21,8 +21,8 @@ export const themes: Theme[] = [
         '#7c3aed', // Violet-600
         '#db2777', // Pink-600
       ],
-      buttonBg: '#374151', // Gray-700
-      buttonHoverBg: '#4b5563', // Gray-600
+      buttonBg: '#60a5fa', // Was Gray-700, now accentColor
+      buttonHoverBg: '#3b82f6', // Was Gray-600, now a darker blue
       cardBg: '#1f2937',   // Gray-800
       cardHeaderColor: '#9ca3af', // Gray-400
       borderColor: '#4b5563',   // Gray-600
