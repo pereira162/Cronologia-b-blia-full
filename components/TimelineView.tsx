@@ -3,7 +3,23 @@
 // incluindo personagens, eventos, a régua de anos e interações como zoom e seleção.
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Person, BibleEvent, YearReferenceMode, SiblingExpansionIconProps, ToggleCharacterVisibilityIconProps, LifeLineToggleIconProps, TimelineViewProps, PinIconProps } from '../types';
+import { Person, BibleEvent, YearReferenceMode, TimelineViewProps } from '../types'; // Removed unused IconProps
+import {
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
+  PlusCircleIcon,
+  MinusCircleIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  LockOpenIcon,
+  LockClosedIcon,
+  GlobeAltIcon,
+  ExclamationTriangleIcon,
+  CloudRainIcon,
+  LinkIcon,
+  BuildingOfficeIcon,
+  CalendarDaysIcon,
+} from '@heroicons/react/24/outline';
 import {
   FONT_SIZE_CLASSES,
   LINE_THICKNESS_CLASSES,
@@ -22,70 +38,7 @@ const YEAR_MARKER_INTERVAL_MAJOR = 500; // Intervalo para marcadores de ano prin
 const YEAR_MARKER_INTERVAL_MINOR = 100; // Intervalo para marcadores de ano secundários
 const HIDDEN_ICON_RADIUS_BASE = 6; // Raio base para o ícone "+" de personagem oculto no arco
 
-// --- Ícones Helper ---
-// Ícone para alternar a visibilidade das linhas de vida de um personagem
-const LifeLineToggleIcon: React.FC<LifeLineToggleIconProps> = ({ active, onClick, className, globalUiScale = 1 }) => (
-  <button
-    onClick={onClick}
-    className={`p-1.5 focus:outline-none ${className}`}
-    title={active ? "Ocultar linhas de vida" : "Mostrar linhas de vida"}
-    aria-pressed={active}
-    style={{ transform: `scale(${globalUiScale * 0.8})` }} // Scale icon slightly with global UI scale
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-5 h-5 transition-colors ${active ? 'text-yellow-400' : 'text-gray-300 hover:text-white'}`}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
-      {active && <rect x="7" y="7" width="10" height="10" rx="1" className="stroke-yellow-400 fill-yellow-400/30" />}
-    </svg>
-  </button>
-);
-
-// Ícone para expandir/recolher a visualização de irmãos
-const SiblingExpansionIcon: React.FC<SiblingExpansionIconProps & { globalUiScale?: number }> = ({ expanded, onClick, className, globalUiScale = 1 }) => (
-  <button onClick={onClick} className={`p-0.5 focus:outline-none ${className}`} title={expanded ? "Recolher irmãos" : "Expandir irmãos"} aria-expanded={expanded} style={{ transform: `scale(${globalUiScale * 0.8})` }}>
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-      {expanded ? (
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-      ) : (
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-      )}
-    </svg>
-  </button>
-);
-
-// Ícone para o botão de ocultar/mostrar personagem
-const ToggleCharacterVisibilityIcon: React.FC<ToggleCharacterVisibilityIconProps & { globalUiScale?: number }> = ({ isVisible, onClick, className, globalUiScale = 1 }) => (
-  <button onClick={onClick} className={`p-0.5 focus:outline-none ${className}`} title={isVisible ? "Ocultar personagem" : "Mostrar personagem"} aria-pressed={!isVisible} style={{ transform: `scale(${globalUiScale * 0.8})` }}>
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-      {isVisible ? (
-         <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L6.228 6.228" />
-      ) : (
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-      )}
-    </svg>
-  </button>
-);
-
-// Ícone para o botão de fixar/desafixar a régua de anos
-const PinYearRulerIcon: React.FC<PinIconProps> = ({ isFixed, onClick, className, title, style }) => (
-  <button
-    onClick={onClick}
-    className={`rounded-md transition-colors duration-150 focus:outline-none hover:opacity-80 ${className}`}
-    style={style} // Allows passing zIndex and other styles
-    title={title}
-    aria-pressed={isFixed}
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-      {isFixed ? (
-        // Ícone de "alfinete fixo" ou similar
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15m0 0a8.25 8.25 0 0115 0M4.5 12a8.25 8.25 0 0015 0m-15 0V6.375c0-1.23.793-2.332 1.963-2.734C7.818 3.243 9.88 3 12 3s4.182.243 5.537.641A3 3 0 0119.5 6.375V12m-15 0v5.625c0 1.23.793 2.332 1.963 2.734 1.355.398 3.417.641 5.537.641s4.182-.243 5.537-.641A3 3 0 0019.5 17.625V12" />
-      ) : (
-         // Ícone de "alfinete desafixado" ou similar
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0-15L4.5 19.5M16.875 3.75h.375a3.375 3.375 0 013.375 3.375v.375m0 0c0 .048-.005.096-.013.142m-3.349-3.504L15 2.25M4.125 20.25h-.375A3.375 3.375 0 01.375 16.875v-.375m0 0c0-.048.005-.096.013-.142m3.349 3.504L9 21.75m12-18L3.75 15.75" />
-      )}
-    </svg>
-  </button>
-);
-
+// --- Ícones Helper --- (Old icon components removed)
 
 // Função para calcular as métricas da linha do tempo
 const calculateTimelineMetrics = (allPeople: Person[], allEvents: BibleEvent[], yearMode: YearReferenceMode, effectiveHorizontalScale: number) => {
@@ -535,29 +488,30 @@ const processedEventsData = useMemo(() => {
     setExpandedSiblingGroups(prev => ({ ...prev, [parentId]: !prev[parentId] }));
   };
 
-  const getEventIcon = (eventName: string) => {
-    if (eventName.toLowerCase().includes('criação')) return '🌍';
-    if (eventName.toLowerCase().includes('queda')) return '🍎';
-    if (eventName.toLowerCase().includes('dilúvio')) return '🌊';
-    if (eventName.toLowerCase().includes('pacto')) return '🤝';
-    if (eventName.toLowerCase().includes('torre')) return '🏗️';
-    return '🗓️'; 
+  const getEventIcon = (eventName: string, className: string = "w-5 h-5") => {
+    const lowerEventName = eventName.toLowerCase();
+    if (lowerEventName.includes('criação')) return <GlobeAltIcon className={className} />;
+    if (lowerEventName.includes('queda')) return <ExclamationTriangleIcon className={className} />;
+    if (lowerEventName.includes('dilúvio')) return <CloudRainIcon className={className} />;
+    if (lowerEventName.includes('pacto')) return <LinkIcon className={className} />;
+    if (lowerEventName.includes('torre')) return <BuildingOfficeIcon className={className} />;
+    return <CalendarDaysIcon className={className} />;
   }
 
   const customYearLabel = (yearVal: number | undefined, type: 'event' = 'event') => {
     if (yearVal === undefined) return null;
     const xPos = getPixelX(yearVal);
-    const labelColor = SEMANTIC_COLOR_VARS.eventLine;
+    // const labelColor = SEMANTIC_COLOR_VARS.eventLine; // Replaced by text-theme-event-line
     return (
       <div
         key={`${type}-year-${yearVal}-${xPos}`}
-        style={{ position: 'absolute', left: `${xPos}px`, top: '25px', color: labelColor, zIndex: Z_INDICES.yearHeader + 1 }}
-        className="transform -translate-x-1/2"
+        style={{ position: 'absolute', left: `${xPos}px`, top: '25px', zIndex: Z_INDICES.yearHeader + 1 }}
+        className="transform -translate-x-1/2 text-theme-event-line"
       >
         <span className="px-1 rounded bg-black/60" style={{fontSize: yearMarkerMinorFontSize}}>
           {Math.round(yearVal)} {yearReferenceMode === 'AC' ? 'aC' : ''}
         </span>
-         <div className="w-px h-3 mx-auto" style={{ backgroundColor: labelColor }}></div>
+         <div className="w-px h-3 mx-auto bg-theme-event-line"></div>
       </div>
     );
   };
@@ -624,7 +578,7 @@ const processedEventsData = useMemo(() => {
           <path
             key={`arc-main-${person.id}-${nextVisibleDescendant.id}`}
             d={`M ${parentArcStartX} ${parentArcStartY} Q ${controlX} ${controlY} ${childArcEndX} ${childArcEndY}`}
-            stroke={SEMANTIC_COLOR_VARS.accentColor}
+            className="stroke-theme-accent"
             strokeWidth={Math.max(1, parseFloat(LINE_THICKNESS_CLASSES.normal.replace('w-','')) * effectiveVerticalScale * 0.8)}
             fill="none"
             opacity="0.5"
@@ -657,17 +611,16 @@ const processedEventsData = useMemo(() => {
               <title>Mostrar {hiddenChar.name}</title>
               <circle
                 cx={0} cy={0} r={ICON_SCALED_RADIUS}
-                fill={SEMANTIC_COLOR_VARS.cardBg} 
-                stroke={SEMANTIC_COLOR_VARS.accentColor}
+                className="fill-theme-card-bg stroke-theme-accent"
                 strokeWidth="1.5" opacity="0.9"
               />
               <line
                 x1={-ICON_PLUS_HALF_SIZE} y1={0} x2={ICON_PLUS_HALF_SIZE} y2={0}
-                stroke={SEMANTIC_COLOR_VARS.accentColor} strokeWidth="1.5" strokeLinecap="round"
+                className="stroke-theme-accent" strokeWidth="1.5" strokeLinecap="round"
               />
               <line
                 x1={0} y1={-ICON_PLUS_HALF_SIZE} x2={0} y2={ICON_PLUS_HALF_SIZE}
-                stroke={SEMANTIC_COLOR_VARS.accentColor} strokeWidth="1.5" strokeLinecap="round"
+                className="stroke-theme-accent" strokeWidth="1.5" strokeLinecap="round"
               />
             </g>
           );
@@ -695,7 +648,7 @@ const processedEventsData = useMemo(() => {
             <path
               key={`arc-sibling-${person.id}-${sibling.id}`}
               d={`M ${parentArcStartX} ${parentArcStartY} Q ${controlPtX} ${controlPtY} ${childArcEndX} ${childArcEndY}`}
-              stroke={SEMANTIC_COLOR_VARS.textColor} 
+              className="stroke-theme-text" 
               strokeWidth={Math.max(1, parseFloat(LINE_THICKNESS_CLASSES.thin.replace('w-','')) * effectiveVerticalScale * 0.7)}
               fill="none"
               opacity="0.4"
@@ -764,28 +717,34 @@ const processedEventsData = useMemo(() => {
       >
         <div className={`flex items-center h-full ${showCharacterBarControls && !isSibling ? 'w-auto min-w-[60px]' : 'w-auto'}`}>
           {showCharacterBarControls && !isSibling && (
-              <>
-                  <ToggleCharacterVisibilityIcon
-                      isVisible={p.isVisible}
-                      onClick={(e) => { e.stopPropagation(); onToggleCharacterVisibility(p.id); }}
-                      className="p-1 text-gray-300 hover:text-red-400"
-                      globalUiScale={globalUiScale}
-                  />
-                  <LifeLineToggleIcon
-                      active={!!activePersonLifeLines[p.id]}
-                      onClick={(e) => { e.stopPropagation(); onTogglePersonLifeLine(p.id); }}
-                      className="p-1 text-gray-300"
-                      globalUiScale={globalUiScale}
-                  />
-                  {hasVisibleExpandableSiblings && (
-                    <SiblingExpansionIcon
-                      expanded={!!expandedSiblingGroups[p.id]}
-                      onClick={(e) => toggleSiblingExpansion(p.id, e)}
-                      className="text-gray-300 hover:text-white"
-                      globalUiScale={globalUiScale}
-                    />
-                  )}
-              </>
+            <div style={{ transform: `scale(${globalUiScale * 0.8})` }} className="flex items-center">
+                <button
+                    onClick={(e) => { e.stopPropagation(); onToggleCharacterVisibility(p.id); }}
+                    className="p-1 text-gray-300 hover:text-red-400 focus:outline-none"
+                    title={p.isVisible ? "Ocultar personagem" : "Mostrar personagem"}
+                    aria-pressed={!p.isVisible}
+                >
+                    {p.isVisible ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onTogglePersonLifeLine(p.id); }}
+                    className={`p-1.5 focus:outline-none transition-colors ${activePersonLifeLines[p.id] ? 'text-yellow-400' : 'text-gray-300 hover:text-white'}`}
+                    title={activePersonLifeLines[p.id] ? "Ocultar linhas de vida" : "Mostrar linhas de vida"}
+                    aria-pressed={!!activePersonLifeLines[p.id]}
+                >
+                    {activePersonLifeLines[p.id] ? <ArrowsPointingOutIcon className="w-5 h-5" /> : <ArrowsPointingInIcon className="w-5 h-5" />}
+                </button>
+                {hasVisibleExpandableSiblings && (
+                  <button 
+                    onClick={(e) => toggleSiblingExpansion(p.id, e)} 
+                    className="p-0.5 focus:outline-none text-gray-300 hover:text-white" 
+                    title={expandedSiblingGroups[p.id] ? "Recolher irmãos" : "Expandir irmãos"} 
+                    aria-expanded={!!expandedSiblingGroups[p.id]}
+                  >
+                    {expandedSiblingGroups[p.id] ? <MinusCircleIcon className="w-5 h-5" /> : <PlusCircleIcon className="w-5 h-5" />}
+                  </button>
+                )}
+            </div>
           )}
         </div>
         <div
@@ -815,13 +774,12 @@ const processedEventsData = useMemo(() => {
             top: `${actualY + currentBarHeight / 2}px`,
             transform: 'translate(-100%, -50%)', 
             zIndex: Z_INDICES.timelineCharacterBars + 1, 
-            color: SEMANTIC_COLOR_VARS.personLineActive,
-            backgroundColor: 'var(--app-bg-color, #000)', 
+            backgroundColor: 'var(--app-bg-color, #000)', // Keep direct var for dynamic theme switch
             padding: '2px 4px',
             borderRadius: '3px',
             fontSize: dateLineLabelFontSize
           }}
-          className="whitespace-nowrap shadow-md"
+          className="whitespace-nowrap shadow-md text-theme-person-line-active"
         >
           {Math.round(displayBirthYearText)}{yearSuffix}
         </div>
@@ -839,13 +797,12 @@ const processedEventsData = useMemo(() => {
               top: `${actualY + currentBarHeight / 2}px`,
               transform: 'translateY(-50%)', 
               zIndex: Z_INDICES.timelineCharacterBars + 1,
-              color: SEMANTIC_COLOR_VARS.personLineActive,
-              backgroundColor: 'var(--app-bg-color, #000)',
+              backgroundColor: 'var(--app-bg-color, #000)', // Keep direct var
               padding: '2px 4px',
               borderRadius: '3px',
               fontSize: dateLineLabelFontSize
             }}
-            className="whitespace-nowrap shadow-md"
+            className="whitespace-nowrap shadow-md text-theme-person-line-active"
           >
             &#10013; {displayDeathYearText !== undefined ? Math.round(displayDeathYearText) : '?'}{yearSuffix}
           </div>
@@ -860,25 +817,29 @@ const processedEventsData = useMemo(() => {
       style={{ 
         height: `${SCALED_YEAR_HEADER_HEIGHT}px`, 
         width: `${totalPixelWidth}px`, 
-        backgroundColor: SEMANTIC_COLOR_VARS.headerBg,
         position: isYearRulerSticky ? 'sticky' : 'absolute', 
         top: 0, 
         left: 0,
         zIndex: Z_INDICES.yearHeader 
       }}
+      className="bg-theme-header-bg"
       aria-hidden="true"
     >
       {yearMarkers.map(marker => (
         <div key={`year-marker-${marker.year}-${marker.x}`} style={{ position: 'absolute', left: `${marker.x}px`, bottom: '0px'}} className="h-full flex flex-col items-center justify-end">
-            <span style={{ 
-              color: marker.isMajor ? SEMANTIC_COLOR_VARS.timelineYearMarkerMajor : SEMANTIC_COLOR_VARS.timelineYearMarkerMinor,
+            <span 
+              className={marker.isMajor ? 'text-theme-year-marker-major' : 'text-theme-year-marker-minor'}
+              style={{ 
               fontSize: marker.isMajor ? yearMarkerMajorFontSize : yearMarkerMinorFontSize,
               fontWeight: marker.isMajor ? 'bold' : 'normal',
               opacity: marker.isMajor ? 1 : 0.8,
             }}>
             {Math.round(marker.year)} {yearReferenceMode === 'AC' ? <span style={{fontSize: `calc(0.6rem * ${globalUiScale})`}}>aC</span> : ''}
           </span>
-          <div className={`w-px ${marker.isMajor ? 'h-8' : 'h-4'}`} style={{ backgroundColor: marker.isMajor ? SEMANTIC_COLOR_VARS.timelineYearMarkerMajor : SEMANTIC_COLOR_VARS.timelineYearMarkerMinor, height: marker.isMajor ? BASE_DIMENSIONS.timelineMarkerMajorHeight * globalUiScale : BASE_DIMENSIONS.timelineMarkerMinorHeight * globalUiScale }}></div>
+          <div 
+            className={`w-px ${marker.isMajor ? 'h-8 bg-theme-year-marker-major' : 'h-4 bg-theme-year-marker-minor'}`} 
+            style={{ height: marker.isMajor ? BASE_DIMENSIONS.timelineMarkerMajorHeight * globalUiScale : BASE_DIMENSIONS.timelineMarkerMinorHeight * globalUiScale }}
+          ></div>
         </div>
       ))}
       {events.map(event => { 
@@ -891,27 +852,26 @@ const processedEventsData = useMemo(() => {
 
 
   return (
-    <div className="w-full h-full flex overflow-hidden relative" style={{backgroundColor: SEMANTIC_COLOR_VARS.appBg}}>
+    <div className="w-full h-full flex overflow-hidden relative bg-theme-app-bg">
       <div className="flex-grow h-full overflow-auto relative" id="timeline-scroll-container" role="region" aria-label="Linha do Tempo Genealógica">
         
-        <PinYearRulerIcon
-          isFixed={isYearRulerSticky}
+        <button
           onClick={() => setIsYearRulerSticky(!isYearRulerSticky)}
-          className="transition-colors duration-150 focus:outline-none hover:opacity-80"
+          className="transition-colors duration-150 focus:outline-none hover:opacity-80 p-1.5 rounded-md bg-theme-button-bg text-theme-text"
           title={isYearRulerSticky ? "Desafixar Régua de Anos" : "Fixar Régua de Anos"}
+          aria-pressed={isYearRulerSticky}
           style={{
             position: 'sticky', 
             top: `${8 * globalUiScale}px`, 
-            right: `${8 * globalUiScale}px`, 
-            backgroundColor: SEMANTIC_COLOR_VARS.buttonBg,
-            color: SEMANTIC_COLOR_VARS.textColor,
-            padding: `${6 * globalUiScale}px`,
-            borderRadius: `${4 * globalUiScale}px`,
-            zIndex: Z_INDICES.yearHeader + 5, 
-            // transform and transformOrigin removed for robust sticky behavior
+            left: `${totalPixelWidth - (36 * globalUiScale) - (8*globalUiScale)}px`, // Positioned to the right, considering button width and padding
+            width: `${36 * globalUiScale}px`, // Approximate width for a square button
+            height: `${36 * globalUiScale}px`,
+            zIndex: Z_INDICES.yearHeader + 5,
           }}
-        />
-
+        >
+          {isYearRulerSticky ? <LockClosedIcon className="w-5 h-5 mx-auto" /> : <LockOpenIcon className="w-5 h-5 mx-auto" />}
+        </button>
+        
         {yearRulerContent}
         
         <div
@@ -933,8 +893,8 @@ const processedEventsData = useMemo(() => {
                     top: `${SCALED_PERSON_BLOCK_ACTUAL_START_Y + (i * (SCALED_BAR_HEIGHT + SCALED_BAR_VERTICAL_GAP)) - (SCALED_BAR_VERTICAL_GAP / 2) - (SCALED_BAR_HEIGHT / 2) }px`, 
                     width: `${totalPixelWidth}px`, 
                     zIndex: Z_INDICES.gridLines, 
-                    borderColor: SEMANTIC_COLOR_VARS.timelineGridLine 
                 }}
+                className="absolute left-0 right-0 border-b border-theme-grid-line"
                 aria-hidden="true"
                 ></div>
             ))}
@@ -942,8 +902,8 @@ const processedEventsData = useMemo(() => {
            {yearMarkers.filter(m => m.isMajor).map(marker => ( 
              <div
               key={`v-grid-${marker.year}`}
-              className="absolute bottom-0 border-l"
-              style={{ left: `${marker.x}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.gridLines, borderColor: SEMANTIC_COLOR_VARS.timelineGridLine}}
+              className="absolute bottom-0 border-l border-theme-grid-line"
+              style={{ left: `${marker.x}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.gridLines}}
               aria-hidden="true"
              ></div>
            ))}
@@ -953,8 +913,8 @@ const processedEventsData = useMemo(() => {
             const deathX = getPixelX(yearReferenceMode === 'AC' ? p.displayDeathAC : p.displayDeathRelative);
             return (
               <React.Fragment key={`lines-${p.id}`}>
-                {birthX !== undefined && <div aria-hidden="true" className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal}`} style={{ left: `${birthX}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.activePersonLines, backgroundColor: SEMANTIC_COLOR_VARS.personLineActive, opacity: 0.7 }}></div>}
-                {deathX !== undefined && <div aria-hidden="true" className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal}`} style={{ left: `${deathX}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.activePersonLines, backgroundColor: SEMANTIC_COLOR_VARS.personLineActive, opacity: 0.7 }}></div>}
+                {birthX !== undefined && <div aria-hidden="true" className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal} bg-theme-person-line-active`} style={{ left: `${birthX}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.activePersonLines, opacity: 0.7 }}></div>}
+                {deathX !== undefined && <div aria-hidden="true" className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal} bg-theme-person-line-active`} style={{ left: `${deathX}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.activePersonLines, opacity: 0.7 }}></div>}
               </React.Fragment>
             );
           })}
@@ -966,8 +926,8 @@ const processedEventsData = useMemo(() => {
             return (
               <React.Fragment key={`event-full-${event.id}`}>
                 <div
-                  className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal} cursor-pointer group`}
-                  style={{ left: `${xPos}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.eventVerticalLines, backgroundColor: SEMANTIC_COLOR_VARS.eventLine, opacity: 0.7 }}
+                  className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal} cursor-pointer group bg-theme-event-line`}
+                  style={{ left: `${xPos}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.eventVerticalLines, opacity: 0.7 }}
                   onClick={() => onSelectEvent(event)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectEvent(event);}}
                   role="button"
@@ -988,7 +948,7 @@ const processedEventsData = useMemo(() => {
                         title={`${event.name} (Ano ${Math.round(event.eventDisplayYear)} ${yearReferenceMode === 'AC' ? 'aC' : ''})`}
                         aria-hidden="true"
                         >
-                        <div className={`group-hover:scale-125 transition-transform`} style={{color: SEMANTIC_COLOR_VARS.eventLine, fontSize: eventIconFontSize}}>{getEventIcon(event.name)}</div>
+                        <div className={`group-hover:scale-125 transition-transform text-theme-event-line`} style={{fontSize: eventIconFontSize}}>{getEventIcon(event.name, `w-${Math.round(5 * globalUiScale)} h-${Math.round(5 * globalUiScale)}`)}</div>
                     </div>
                 </div>
                 <div
@@ -997,7 +957,6 @@ const processedEventsData = useMemo(() => {
                     left: `${xPos + 8 * globalUiScale}px`, 
                     top: `${eventNameY}px`,
                     zIndex: Z_INDICES.eventIconsAndLabels,
-                    color: SEMANTIC_COLOR_VARS.textColor,
                     writingMode: 'vertical-rl', 
                     transform: 'rotate(180deg)', 
                     maxHeight: `${SCALED_EVENT_LABEL_MAX_HEIGHT}px`,
@@ -1006,7 +965,7 @@ const processedEventsData = useMemo(() => {
                     whiteSpace: 'nowrap', 
                     fontSize: eventTextFontSize 
                   }}
-                  className={`px-0.5 py-1 bg-black/60 rounded shadow cursor-pointer`}
+                  className={`px-0.5 py-1 bg-black/60 rounded shadow cursor-pointer text-theme-text`}
                   onClick={() => onSelectEvent(event)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectEvent(event);}}
                   role="button"
@@ -1023,7 +982,7 @@ const processedEventsData = useMemo(() => {
           <svg width={totalPixelWidth} height={timelineHeight} className="absolute top-0 left-0 pointer-events-none" style={{zIndex: Z_INDICES.parentChildArcs}} aria-hidden="true">
             <defs>
                 <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-                    <polygon points="0 0, 6 2, 0 4" fill={SEMANTIC_COLOR_VARS.accentColor} opacity="0.6" />
+                    <polygon points="0 0, 6 2, 0 4" className="fill-theme-accent" opacity="0.6" />
                 </marker>
             </defs>
             {renderParentChildArcAndDots()}
