@@ -15,7 +15,7 @@ import {
   LockClosedIcon,
   GlobeAltIcon,
   ExclamationTriangleIcon,
-  CloudRainIcon,
+  CloudArrowDownIcon, // Corrected from CloudRainIcon
   LinkIcon,
   BuildingOfficeIcon,
   CalendarDaysIcon,
@@ -492,7 +492,7 @@ const processedEventsData = useMemo(() => {
     const lowerEventName = eventName.toLowerCase();
     if (lowerEventName.includes('criação')) return <GlobeAltIcon className={className} />;
     if (lowerEventName.includes('queda')) return <ExclamationTriangleIcon className={className} />;
-    if (lowerEventName.includes('dilúvio')) return <CloudRainIcon className={className} />;
+    if (lowerEventName.includes('dilúvio')) return <CloudArrowDownIcon className={className} />; // Corrected usage
     if (lowerEventName.includes('pacto')) return <LinkIcon className={className} />;
     if (lowerEventName.includes('torre')) return <BuildingOfficeIcon className={className} />;
     return <CalendarDaysIcon className={className} />;
@@ -822,7 +822,7 @@ const processedEventsData = useMemo(() => {
         left: 0,
         zIndex: Z_INDICES.yearHeader 
       }}
-      className="bg-theme-header-bg"
+      className="flex items-end px-4 bg-theme-header-bg"
       aria-hidden="true"
     >
       {yearMarkers.map(marker => (
@@ -888,7 +888,6 @@ const processedEventsData = useMemo(() => {
             {Array.from({ length: Math.floor(timelineHeight / (SCALED_BAR_HEIGHT + SCALED_BAR_VERTICAL_GAP)) + 15 }).map((_, i) => (
                 <div
                 key={`h-grid-${i}`}
-                className="absolute left-0 right-0 border-b"
                 style={{ 
                     top: `${SCALED_PERSON_BLOCK_ACTUAL_START_Y + (i * (SCALED_BAR_HEIGHT + SCALED_BAR_VERTICAL_GAP)) - (SCALED_BAR_VERTICAL_GAP / 2) - (SCALED_BAR_HEIGHT / 2) }px`, 
                     width: `${totalPixelWidth}px`, 
