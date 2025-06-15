@@ -2,7 +2,7 @@
 // Componente React para exibir um card (modal) com informações detalhadas sobre um personagem bíblico.
 
 import React from 'react';
-import { Person, BibleEvent } from '../types'; // Importa os tipos Person e BibleEvent
+import { Person } from '../types';
 // Fix: Import peopleData from ../data
 import { eventsData, peopleData } from '../data'; // Importa os dados de todos os eventos para encontrar os relacionados
 import { FONT_SIZE_CLASSES, Z_INDICES } from '../stylingConstants'; // Importa constantes de estilização

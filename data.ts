@@ -17,11 +17,12 @@ const mergedPeopleData: Person[] = characterProfiles.map(profile => {
   
   // Começa com os dados do perfil, que contém a maioria das informações descritivas e relacionais.
   const person: Person = { ...profile };
-
   // Se dados cronológicos correspondentes forem encontrados (em characterTimings),
   // eles são adicionados ou sobrescrevem os campos de tempo no objeto `person`.
   if (timing) {
-    person.birthYear = timing.birthYear; // `birthYear` é obrigatório em CharacterTiming.
+    if (timing.birthYear !== undefined) {
+      person.birthYear = timing.birthYear;
+    }
     if (timing.ageAtParenthood !== undefined) {
       person.ageAtParenthood = timing.ageAtParenthood;
     }

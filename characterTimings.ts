@@ -7,7 +7,7 @@
 // Interface para os dados de tempo de um personagem.
 interface CharacterTiming {
   id: string; // ID do personagem, deve corresponder ao ID em characterProfiles.ts
-  birthYear: number;      // Ano de nascimento relativo a Adão = 0 (obrigatório para cálculo da timeline)
+  birthYear?: number;      // Ano de nascimento relativo a Adão = 0 (opcional, alguns personagens não têm data conhecida)
   ageAtParenthood?: number; // Idade ao gerar o filho principal da linhagem (opcional)
   totalLifespan?: number;   // Tempo total de vida em anos (opcional)
 }
@@ -18,8 +18,8 @@ export const characterTimings: CharacterTiming[] = [
   // Os birthYears são calculados cumulativamente a partir de Adão.
   { id: 'adam', birthYear: 0, ageAtParenthood: 130, totalLifespan: 930 }, // Adão viveu 930 anos, gerou Sete aos 130.
   { id: 'seth_adam_child', birthYear: 130, ageAtParenthood: 105, totalLifespan: 912 }, // Sete nasceu quando Adão tinha 130.
-  { id: 'cain_adam_child', birthYear: 2 /* Estimativa simbólica, pouco após Adão */, ageAtParenthood: undefined, totalLifespan: undefined /* Não especificado claramente*/ },
-  { id: 'abel_adam_child', birthYear: 4 /* Estimativa simbólica, pouco após Caim */, ageAtParenthood: undefined, totalLifespan: undefined /* Morto jovem, não especificado */ },
+  { id: 'cain_adam_child', birthYear: 2 /* Estimativa simbólica, pouco após Adão */ }, /* Não especificado claramente: ageAtParenthood, totalLifespan */
+  { id: 'abel_adam_child', birthYear: 4 /* Estimativa simbólica, pouco após Caim */ }, /* Morto jovem, não especificado: ageAtParenthood, totalLifespan */
   { id: 'enos_seth_child', birthYear: 130 + 105, ageAtParenthood: 90, totalLifespan: 905 }, // Enos nasceu quando Sete tinha 105.
   { id: 'caina_enos_child', birthYear: 130 + 105 + 90, ageAtParenthood: 70, totalLifespan: 910 },
   { id: 'maalalel_caina_child', birthYear: 130 + 105 + 90 + 70, ageAtParenthood: 65, totalLifespan: 895 },
@@ -51,8 +51,8 @@ export const characterTimings: CharacterTiming[] = [
   // Arfaxade_BY = Sem_BY + 100 = 1556 + 100 = 1656.
   
   { id: 'sem_noe_child', birthYear: (1056) + 500, ageAtParenthood: 100, totalLifespan: 600 }, // Sem_BY = 1556
-  { id: 'cam_noe_child', birthYear: (1056) + 502 /* Estimativa, pode ser um pouco depois de Sem */, totalLifespan: undefined },
-  { id: 'jafe_noe_child', birthYear: (1056) + 503 /* Estimativa */, totalLifespan: undefined },
+  { id: 'cam_noe_child', birthYear: (1056) + 502 /* Estimativa, pode ser um pouco depois de Sem */ },
+  { id: 'jafe_noe_child', birthYear: (1056) + 503 /* Estimativa */ },
   { id: 'cus_cam_child', birthYear: ((1056) + 502) + 30 /* Estimativa */ },
   { id: 'mizraim_cam_child', birthYear: ((1056) + 502) + 32 /* Estimativa */ },
   { id: 'pute_cam_child', birthYear: ((1056) + 502) + 34 /* Estimativa */ },
@@ -92,35 +92,35 @@ export const characterTimings: CharacterTiming[] = [
   { id: 'abraao_tera_child', birthYear: 1878 + 130, ageAtParenthood: 100 /*Isaque*/, totalLifespan: 175 }, // Abrão_BY = 2008.
   { id: 'sarai_abraao_esposa', birthYear: (1878 + 130) + 10, totalLifespan: 127 }, // Sara_BY = 2018.
   
-  { id: 'hagar_abraao_concubina', birthYear: undefined /* Não especificado */ },
-  { id: 'quetura_abraao_esposa', birthYear: undefined /* Não especificado */ },
-  { id: 'naor_tera_child', birthYear: 1878 + 70 /* Assumindo que Naor nasceu quando Terá tinha 70, antes de Abraão se a interpretação de 130 for usada para Abraão */, totalLifespan: undefined},
-  { id: 'hara_tera_child', birthYear: 1878 + 70 /* Idem */, totalLifespan: undefined /* Morreu antes de Terá em Ur */ },
-  { id: 'lo_hara_filho', birthYear: undefined /* Não especificado */},
-  { id: 'milca_hara_filha', birthYear: undefined /* Não especificado */},
-  { id: 'isca_hara_filha', birthYear: undefined /* Não especificado */},
-  { id: 'betuel_naor_filho', birthYear: undefined /* Não especificado */},
-  { id: 'rebeca_betuel_filha', birthYear: undefined /* Não especificado, mas Isaque tinha 40 quando casou (Gn 25:20), então Rebeca_BY deve ser ~Isaque_BY + 20-25 */},
-  { id: 'labao_betuel_filho', birthYear: undefined /* Não especificado */},
+  { id: 'hagar_abraao_concubina' /* birthYear não especificado */ },
+  { id: 'quetura_abraao_esposa' },
+  { id: 'naor_tera_child', birthYear: 1878 + 70 /* Assumindo que Naor nasceu quando Terá tinha 70, antes de Abraão se a interpretação de 130 for usada para Abraão */ },
+  { id: 'hara_tera_child', birthYear: 1878 + 70 /* Idem */ },
+  { id: 'lo_hara_filho' },
+  { id: 'milca_hara_filha' },
+  { id: 'isca_hara_filha' },
+  { id: 'betuel_naor_filho' },
+  { id: 'rebeca_betuel_filha' },
+  { id: 'labao_betuel_filho' },
 
   { id: 'ismael_abraao_child', birthYear: (2008) + 86, totalLifespan: 137 }, // Ismael_BY = 2094. (Abraão 86 anos - Gn 16:16)
   { id: 'isaque_abraao_child', birthYear: (2008) + 100, ageAtParenthood: 60, totalLifespan: 180 }, // Isaque_BY = 2108. (Abraão 100 anos - Gn 21:5)
   
   // Filhos de Quetura - nascimentos não especificados em relação à linha do tempo
-  { id: 'zinra_quetura_filho', birthYear: undefined },
-  { id: 'jocsa_quetura_filho', birthYear: undefined },
-  { id: 'meda_quetura_filho', birthYear: undefined },
-  { id: 'midia_quetura_filho', birthYear: undefined },
-  { id: 'isbaque_quetura_filho', birthYear: undefined },
-  { id: 'sua_quetura_filho', birthYear: undefined },
+  { id: 'zinra_quetura_filho' },
+  { id: 'jocsa_quetura_filho' },
+  { id: 'meda_quetura_filho' },
+  { id: 'midia_quetura_filho' },
+  { id: 'isbaque_quetura_filho' },
+  { id: 'sua_quetura_filho' },
   
   // Jacó e seus filhos
-  { id: 'esau_isaque_child', birthYear: (2108) + 60, totalLifespan: undefined /* Não especificado, mas viveu muito (Gn 35:29 menciona sua presença na morte de Isaque) */}, // Esaú_BY = 2168 (Isaque 60 anos - Gn 25:26)
+  { id: 'esau_isaque_child', birthYear: (2108) + 60 }, // Esaú_BY = 2168 (Isaque 60 anos - Gn 25:26)
   { id: 'jaco_isaque_child', birthYear: (2108) + 60, ageAtParenthood: 84 /* Idade ao nascimento de Rúben. Jacó (77) chega a Harã, 7 anos de serviço -> 84. */, totalLifespan: 147 }, // Jacó_BY = 2168
-  { id: 'lia_labao_filha', birthYear: undefined /* Não especificado */},
-  { id: 'raquel_labao_filha', birthYear: undefined /* Não especificado */},
-  { id: 'bila_serva', birthYear: undefined },
-  { id: 'zilpa_serva', birthYear: undefined },
+  { id: 'lia_labao_filha' },
+  { id: 'raquel_labao_filha' },
+  { id: 'bila_serva' },
+  { id: 'zilpa_serva' },
 
   // Filhos de Jacó - nascimentos relativos a Jacó_BY + idade de Jacó
   // Jacó chegou em Harã com ~77 anos (se fugiu logo após roubar a bênção, e Isaque tinha ~137).
@@ -129,19 +129,19 @@ export const characterTimings: CharacterTiming[] = [
   // Rúben (Lia): Jacó ~84-85. Ano ~2252-2253.
   // José (Raquel): Jacó ~91 (Gn 30:25). Nasceu após 14 anos de serviço de Jacó (7 por Lia, 7 por Raquel). Jacó ~77+14=91. Ano = 2168 + 91 = 2259.
   
-  { id: 'ruben_jaco_lia_filho', birthYear: (2168) + 84, totalLifespan: undefined },
-  { id: 'simeao_jaco_lia_filho', birthYear: (2168) + 85, totalLifespan: undefined },
+  { id: 'ruben_jaco_lia_filho', birthYear: (2168) + 84 },
+  { id: 'simeao_jaco_lia_filho', birthYear: (2168) + 85 },
   { id: 'levi_jaco_lia_filho', birthYear: (2168) + 86, totalLifespan: 137 /* Êxodo 6:16 */},
-  { id: 'juda_jaco_lia_filho', birthYear: (2168) + 87, totalLifespan: undefined },
-  { id: 'da_jaco_bila_filho', birthYear: (2168) + 87.5 /* Estimativa após Judá, Raquel deu Bila */, totalLifespan: undefined },
-  { id: 'naftali_jaco_bila_filho', birthYear: (2168) + 88, totalLifespan: undefined },
-  { id: 'gade_jaco_zilpa_filho', birthYear: (2168) + 88.5 /* Lia deu Zilpa */, totalLifespan: undefined },
-  { id: 'aser_jaco_zilpa_filho', birthYear: (2168) + 89, totalLifespan: undefined },
-  { id: 'issacar_jaco_lia_filho', birthYear: (2168) + 89.5 /* Lia novamente */, totalLifespan: undefined },
-  { id: 'zebulom_jaco_lia_filho', birthYear: (2168) + 90, totalLifespan: undefined },
-  { id: 'dina_jaco_lia_filha', birthYear: (2168) + 90.5 /* Após Zebulom */, totalLifespan: undefined },
+  { id: 'juda_jaco_lia_filho', birthYear: (2168) + 87 },
+  { id: 'da_jaco_bila_filho', birthYear: (2168) + 87.5 /* Estimativa após Judá, Raquel deu Bila */ },
+  { id: 'naftali_jaco_bila_filho', birthYear: (2168) + 88 },
+  { id: 'gade_jaco_zilpa_filho', birthYear: (2168) + 88.5 /* Lia deu Zilpa */ },
+  { id: 'aser_jaco_zilpa_filho', birthYear: (2168) + 89 },
+  { id: 'issacar_jaco_lia_filho', birthYear: (2168) + 89.5 /* Lia novamente */ },
+  { id: 'zebulom_jaco_lia_filho', birthYear: (2168) + 90 },
+  { id: 'dina_jaco_lia_filha', birthYear: (2168) + 90.5 /* Após Zebulom */ },
   { id: 'jose_jaco_raquel_filho', birthYear: (2168) + 91, ageAtParenthood: 39 /* Governador aos 30 (Gn 41:46). 7 anos de fartura + 2 de fome quando filhos de Jacó descem pela 2a vez e José tem filhos. Efraim e Manassés nascem antes da fome. (Gn 41:50). Idade de José quando Efraim (2o filho) nasceu ~30+7-1 = 36. */, totalLifespan: 110 }, // Jose_BY = 2259.
-  { id: 'benjamim_jaco_raquel_filho', birthYear: (2168) + 91 + 8 /* Estimativa, alguns anos depois de José, antes de Jacó retornar de Harã (20 anos lá). Jacó retorna ~97. */, totalLifespan: undefined },
+  { id: 'benjamim_jaco_raquel_filho', birthYear: (2168) + 91 + 8 /* Estimativa, alguns anos depois de José, antes de Jacó retornar de Harã (20 anos lá). Jacó retorna ~97. */ },
 
   // Filhos de José (nascidos no Egito, antes dos 7 anos de fome)
   // José torna-se governador aos 30 (Jose_BY + 30 = 2259 + 30 = 2289).

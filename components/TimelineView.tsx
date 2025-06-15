@@ -21,10 +21,8 @@ import {
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import {
-  FONT_SIZE_CLASSES,
   LINE_THICKNESS_CLASSES,
   BASE_DIMENSIONS,
-  SEMANTIC_COLOR_VARS,
   Z_INDICES,
   BASE_PIXELS_PER_100_YEARS,
   CHARACTER_BAR_TEXT_PADDING_WITH_CONTROLS,
@@ -556,7 +554,7 @@ const processedEventsData = useMemo(() => {
 
 
   const renderParentChildArcAndDots = () => {
-    const elements: JSX.Element[] = [];
+    const elements: React.ReactElement[] = [];
     const mainLineChildYOffset = SCALED_BAR_HEIGHT / 2;
     const siblingChildYOffset = SCALED_SIBLING_BAR_HEIGHT / 2;
     const ICON_SCALED_RADIUS = HIDDEN_ICON_RADIUS_BASE * Math.max(0.7, Math.min(1.3, effectiveVerticalScale * 0.8)); 
@@ -810,10 +808,8 @@ const processedEventsData = useMemo(() => {
     }
     return elements;
   };
-
   const yearRulerContent = (
     <div
-      className="flex items-end px-4" 
       style={{ 
         height: `${SCALED_YEAR_HEADER_HEIGHT}px`, 
         width: `${totalPixelWidth}px`, 
@@ -989,7 +985,7 @@ const processedEventsData = useMemo(() => {
 
           {visibleMainCovenantPeopleDisplayData.flatMap((p) => {
             const parentElements = renderPersonBarWithLifespan(p, false);
-            let siblingElements: JSX.Element[] = [];
+            let siblingElements: React.ReactElement[] = [];
 
             if (expandedSiblingGroups[p.id] && p.nonCovenantChildren.length > 0) {
                 let currentSiblingY = p.y + SCALED_BAR_HEIGHT + SCALED_BAR_VERTICAL_GAP;
@@ -1010,15 +1006,13 @@ const processedEventsData = useMemo(() => {
                     if (siblingDeathDisplay !== undefined && siblingBirthDisplay !== undefined) {
                         siblingBarWidthPx = Math.abs(getPixelX(siblingDeathDisplay) - getPixelX(siblingBirthDisplay));
                     }
-                    siblingBarWidthPx = Math.max(BASE_DIMENSIONS.minSiblingBarWidthPx * effectiveVerticalScale, siblingBarWidthPx);
-
-                    const siblingDisplayData: PersonDisplayData = {
+                    siblingBarWidthPx = Math.max(BASE_DIMENSIONS.minSiblingBarWidthPx * effectiveVerticalScale, siblingBarWidthPx);                    const siblingDisplayData: PersonDisplayData = {
                         ...sibling,
                         isVisible: true, 
-                        displayBirthAC: yearReferenceMode === 'AC' ? siblingBirthDisplay : undefined,
-                        displayDeathAC: yearReferenceMode === 'AC' ? siblingDeathDisplay : undefined,
-                        displayBirthRelative: yearReferenceMode === 'Relative' ? siblingBirthDisplay : undefined,
-                        displayDeathRelative: yearReferenceMode === 'Relative' ? siblingDeathDisplay : undefined,
+                        ...(yearReferenceMode === 'AC' && siblingBirthDisplay !== undefined && { displayBirthAC: siblingBirthDisplay }),
+                        ...(yearReferenceMode === 'AC' && siblingDeathDisplay !== undefined && { displayDeathAC: siblingDeathDisplay }),
+                        ...(yearReferenceMode === 'Relative' && siblingBirthDisplay !== undefined && { displayBirthRelative: siblingBirthDisplay }),
+                        ...(yearReferenceMode === 'Relative' && siblingDeathDisplay !== undefined && { displayDeathRelative: siblingDeathDisplay }),
                         x: siblingX,
                         y: siblingY,
                         barWidthPx: siblingBarWidthPx,

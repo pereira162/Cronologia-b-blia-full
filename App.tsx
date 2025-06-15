@@ -2,9 +2,12 @@
 // Componente principal da aplicação. Gerencia o estado global, como o modo de visualização,
 // personagem/evento selecionado, tema atual e filtros. Renderiza o cabeçalho,
 // a visualização principal (TimelineView) e os modais de cartão.
+// 
+// ATUALIZADO: React 19 - Aproveitando refs mutáveis e otimizações de performance
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Person, BibleEvent, YearReferenceMode, EventCategory, Theme } from './types'; // Removed unused IconProps
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Person, BibleEvent, YearReferenceMode, EventCategory } from './types';
+import { useOnClickOutside } from './hooks';
 import { peopleData, eventsData } from './data'; 
 import { themes } from './themes'; 
 import {
@@ -20,24 +23,9 @@ import {
 import TimelineView from './components/TimelineView';
 import CharacterCard from './components/CharacterCard';
 import EventCard from './components/EventCard';
-import { FONT_SIZE_CLASSES, SEMANTIC_COLOR_VARS, Z_INDICES, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE, MIN_GLOBAL_UI_SCALE, MAX_GLOBAL_UI_SCALE } from './stylingConstants';
+import { FONT_SIZE_CLASSES, Z_INDICES, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE, MIN_GLOBAL_UI_SCALE, MAX_GLOBAL_UI_SCALE } from './stylingConstants';
 
 // --- Ícones Helper --- (Old icon components removed)
-
-function useOnClickOutside(ref: React.RefObject<HTMLElement>, handler: (event: MouseEvent | TouchEvent) => void) {
-  useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      if (!ref.current || ref.current.contains(event.target as Node)) return;
-      handler(event);
-    };
-    document.addEventListener('mousedown', listener);
-    document.addEventListener('touchstart', listener);
-    return () => {
-      document.removeEventListener('mousedown', listener);
-      document.removeEventListener('touchstart', listener);
-    };
-  }, [ref, handler]);
-}
 
 const mapSliderToScale = (sliderValue: number, minScale: number, maxScale: number): number => {
   const val = Number(sliderValue); 
@@ -57,16 +45,14 @@ const App: React.FC = () => {
   const [yearReferenceMode, setYearReferenceMode] = useState<YearReferenceMode>('AC');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<BibleEvent | null>(null);
-  const [currentThemeId, setCurrentThemeId] = useState<string>(themes[0].id);
-  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
-  const themeSelectorRef = useRef<HTMLDivElement>(null);
+  const [currentThemeId, setCurrentThemeId] = useState<string>(themes[0].id);  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
+  const themeSelectorRef = useOnClickOutside<HTMLDivElement>(() => setIsThemeSelectorOpen(false));
   
   const initialSelectedEventIds = useMemo(() => 
     eventsData.filter(event => event.category === 'principal').map(event => event.id)
   , []); 
-  const [selectedEventIds, setSelectedEventIds] = useState<string[]>(initialSelectedEventIds);
-  const [isEventSelectorOpen, setIsEventSelectorOpen] = useState(false);
-  const eventSelectorRef = useRef<HTMLDivElement>(null);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>(initialSelectedEventIds);  const [isEventSelectorOpen, setIsEventSelectorOpen] = useState(false);
+  const eventSelectorRef = useOnClickOutside<HTMLDivElement>(() => setIsEventSelectorOpen(false));
 
   const [horizontalSliderValue, setHorizontalSliderValue] = useState(mapScaleToSlider(1.0, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE));
   const [verticalSliderValue, setVerticalSliderValue] = useState(mapScaleToSlider(1.0, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE));
@@ -81,32 +67,30 @@ const App: React.FC = () => {
   const effectiveHorizontalScaleDisplay = (baseHorizontalScale * globalUiScale).toFixed(1);
   const effectiveVerticalScaleDisplay = (baseVerticalScale * globalUiScale).toFixed(1);
 
-  const [hiddenCharacterIds, setHiddenCharacterIds] = useState<string[]>([]);
-  const [isPersonVisibilityPanelOpen, setIsPersonVisibilityPanelOpen] = useState(false);
-  const personVisibilityPanelRef = useRef<HTMLDivElement>(null);
+  const [hiddenCharacterIds, setHiddenCharacterIds] = useState<string[]>([]);  const [isPersonVisibilityPanelOpen, setIsPersonVisibilityPanelOpen] = useState(false);
+  const personVisibilityPanelRef = useOnClickOutside<HTMLDivElement>(() => setIsPersonVisibilityPanelOpen(false));
 
   const [showCharacterBarControls, setShowCharacterBarControls] = useState(true);
   const [activePersonLifeLines, setActivePersonLifeLines] = useState<Record<string, boolean>>({});
   
   const [showControlsHeader, setShowControlsHeader] = useState(true);
-  const controlsHeaderRef = useRef<HTMLElement>(null);
-  const [controlsHeaderHeight, setControlsHeaderHeight] = useState(0);
+  const controlsHeaderRef = useRef<HTMLElement>(null);  const [controlsHeaderHeight, setControlsHeaderHeight] = useState(0);
 
-  useOnClickOutside(themeSelectorRef, () => setIsThemeSelectorOpen(false));
-  useOnClickOutside(eventSelectorRef, () => setIsEventSelectorOpen(false));
-  useOnClickOutside(personVisibilityPanelRef, () => setIsPersonVisibilityPanelOpen(false)); 
-
-  const toggleCharacterVisibility = (personId: string) => {
-    setHiddenCharacterIds(prevHiddenIds =>
+  // React 19: Otimizando funções com useCallback para melhor performance
+  const toggleCharacterVisibility = useCallback((personId: string) => {
+    setHiddenCharacterIds((prevHiddenIds: string[]) =>
       prevHiddenIds.includes(personId)
-        ? prevHiddenIds.filter(id => id !== personId)
+        ? prevHiddenIds.filter((id: string) => id !== personId)
         : [...prevHiddenIds, personId]
     );
-  };
+  }, []);
   
-  const togglePersonLifeLine = (personId: string) => {
-    setActivePersonLifeLines(prev => ({ ...prev, [personId]: !prev[personId] }));
-  };
+  const togglePersonLifeLine = useCallback((personId: string) => {
+    setActivePersonLifeLines((prev: Record<string, boolean>) => ({ 
+      ...prev, 
+      [personId]: !prev[personId] 
+    }));
+  }, []);
 
   useEffect(() => {
     const selectedTheme = themes.find(t => t.id === currentThemeId);
@@ -178,18 +162,20 @@ const App: React.FC = () => {
     setSelectedPerson(null);
     setSelectedEvent(null);
   };
+  // React 19: Otimizando handlers com useCallback e tipagem explícita
+  const toggleYearReferenceMode = useCallback(() => {
+    setYearReferenceMode((prevMode: YearReferenceMode) => 
+      prevMode === 'AC' ? 'Relative' : 'AC'
+    );
+  }, []);
 
-  const toggleYearReferenceMode = () => {
-    setYearReferenceMode(prevMode => prevMode === 'AC' ? 'Relative' : 'AC');
-  };
-
-  const handleEventSelectionChange = (eventId: string) => {
-    setSelectedEventIds(prevSelectedIds => 
+  const handleEventSelectionChange = useCallback((eventId: string) => {
+    setSelectedEventIds((prevSelectedIds: string[]) => 
       prevSelectedIds.includes(eventId) 
-        ? prevSelectedIds.filter(id => id !== eventId)
+        ? prevSelectedIds.filter((id: string) => id !== eventId)
         : [...prevSelectedIds, eventId]
     );
-  };
+  }, []);
   
   const eventCategories: EventCategory[] = ['principal', 'secundario', 'menor'];
   const groupedEvents = useMemo(() => {
