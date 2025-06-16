@@ -31,9 +31,9 @@ export const BASE_DIMENSIONS = {
   siblingBarHeight: 24,         // Altura base da barra de um irmão
   barVerticalGap: 10,           // Espaçamento vertical base entre barras de personagens
   siblingVerticalGap: 5,        // Espaçamento vertical base entre barras de irmãos
-  yearHeaderHeight: 80,         // Altura base da régua de anos (conteúdo interno escala com globalUiScale)
-  personBlockGapBelowStickyRuler: 25, // Gap em pixels abaixo da régua pegajosa até a primeira barra de personagem
-  personBlockGapWithNonStickyRuler: 15, // Gap em pixels do topo da área de conteúdo (já preenchida) até a primeira barra de personagem quando a régua não é pegajosa
+  yearHeaderHeight: 100,         // Altura base da régua reduzida para 3 zonas compactas (conteúdo interno escala com globalUiScale)
+  personBlockGapBelowStickyRuler: 10, // Gap em pixels abaixo da régua pegajosa até a primeira barra de personagem
+  personBlockGapWithNonStickyRuler: 10, // Gap em pixels do topo da área de conteúdo (já preenchida) até a primeira barra de personagem quando a régua não é pegajosa
   eventNameLabelHeight: 30,     // Largura base da etiqueta do nome do evento (quando vertical)
   eventLabelEstimatedHeight: 200, // Altura/Comprimento máximo estimado base para o texto vertical do evento
   eventMinVerticalGap: 30,        // Espaçamento vertical mínimo base entre títulos de eventos e outros elementos
@@ -81,6 +81,7 @@ export const Z_INDICES = {
   timelineCharacterBars: 4,
   eventIconsAndLabels: 5,
   yearHeader: 10,             // Régua de anos (pode ser sticky)
+  topHeader: 40,              // Header superior com título e botões principais
   // Pin button needs to be above yearHeader if it's part of scroll container,
   // and below dropdowns/modals if they are globally positioned.
   // Dropdowns need to be above general UI but below modals.

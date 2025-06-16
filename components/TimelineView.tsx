@@ -11,8 +11,6 @@ import {
   MinusCircleIcon,
   EyeIcon,
   EyeSlashIcon,
-  LockOpenIcon,
-  LockClosedIcon,
   GlobeAltIcon,
   ExclamationTriangleIcon,
   CloudArrowDownIcon, // Corrected from CloudRainIcon
@@ -118,11 +116,11 @@ type PersonDisplayData = Person & {
 
 
 // Componente React TimelineView
-const TimelineView: React.FC<TimelineViewProps> = ({
-  people: allPeople, events, onSelectPerson, onSelectEvent, yearReferenceMode, personBarPalette,
+const TimelineView: React.FC<TimelineViewProps> = ({  people: allPeople, events, onSelectPerson, onSelectEvent, yearReferenceMode, personBarPalette,
   horizontalScale: baseHorizontalScale, verticalScale: baseVerticalScale, globalUiScale,
   hiddenCharacterIds, onToggleCharacterVisibility,
-  showCharacterBarControls, activePersonLifeLines, onTogglePersonLifeLine
+  showCharacterBarControls, activePersonLifeLines, onTogglePersonLifeLine,
+  isYearRulerSticky: externalIsYearRulerSticky
 }) => {
   
   const effectiveHorizontalScale = baseHorizontalScale * globalUiScale;
@@ -134,7 +132,14 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   );
   const totalDataSpan = Math.abs(displayStartYear - displayEndYear);
 
-  const [isYearRulerSticky, setIsYearRulerSticky] = useState(true);
+  const [isYearRulerSticky, setIsYearRulerSticky] = useState(externalIsYearRulerSticky ?? true);
+  
+  // Sync internal state with external prop
+  useEffect(() => {
+    if (externalIsYearRulerSticky !== undefined) {
+      setIsYearRulerSticky(externalIsYearRulerSticky);
+    }
+  }, [externalIsYearRulerSticky]);
 
   // Dimensões escalonadas
   const SCALED_BAR_HEIGHT = BASE_DIMENSIONS.characterBarHeight * effectiveVerticalScale;
@@ -142,36 +147,164 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   const SCALED_BAR_VERTICAL_GAP = BASE_DIMENSIONS.barVerticalGap * effectiveVerticalScale;
   const SCALED_SIBLING_VERTICAL_GAP = BASE_DIMENSIONS.siblingVerticalGap * effectiveVerticalScale;
   const SCALED_YEAR_HEADER_HEIGHT = BASE_DIMENSIONS.yearHeaderHeight * globalUiScale; 
-  
-  const SCALED_PERSON_BLOCK_ACTUAL_START_Y = useMemo(() => {
+    const SCALED_PERSON_BLOCK_ACTUAL_START_Y = useMemo(() => {
     if (isYearRulerSticky) {
-      // When ruler is sticky, it's out of flow. Content starts below it.
-      // SCALED_YEAR_HEADER_HEIGHT is height of ruler.
-      // personBlockGapBelowStickyRuler is the gap *below* the sticky ruler.
-      return SCALED_YEAR_HEADER_HEIGHT + (BASE_DIMENSIONS.personBlockGapBelowStickyRuler * effectiveVerticalScale);
+      // When ruler is sticky, ensure enough space below it for first character
+      // Add extra padding to avoid overlap
+      return SCALED_YEAR_HEADER_HEIGHT + (BASE_DIMENSIONS.personBlockGapBelowStickyRuler * effectiveVerticalScale) + 20;
     } else {
-      // When ruler is not sticky, mainTimelineContentRef already has paddingTop for ruler's height.
-      // So, personBlockGapWithNonStickyRuler is the gap *within* that padded area.
-      return BASE_DIMENSIONS.personBlockGapWithNonStickyRuler * effectiveVerticalScale;
+      // When ruler is not sticky, ensure first character is visible and not hidden by header
+      // Add extra padding for better visibility
+      return (BASE_DIMENSIONS.personBlockGapWithNonStickyRuler * effectiveVerticalScale) + 30;
     }
   }, [isYearRulerSticky, SCALED_YEAR_HEADER_HEIGHT, effectiveVerticalScale]);
   
   const SCALED_EVENT_LABEL_MAX_HEIGHT = BASE_DIMENSIONS.eventLabelEstimatedHeight * globalUiScale;
   const SCALED_EVENT_MIN_VERTICAL_GAP = BASE_DIMENSIONS.eventMinVerticalGap * effectiveVerticalScale;
 
-  // Font sizes scaled by globalUiScale
-  const characterNameFontSize = `calc(1.2rem * ${globalUiScale})`; 
-  const lifespanTextFontSize = `calc(0.7rem * ${globalUiScale})`;  
-  const siblingNameFontSize = `calc(0.75rem * ${globalUiScale})`; 
-  const yearMarkerMajorFontSize = `calc(0.8rem * ${globalUiScale})`; 
-  const yearMarkerMinorFontSize = `calc(0.7rem * ${globalUiScale})`; 
-  const eventIconFontSize = `calc(1rem * ${globalUiScale})`; 
-  const eventTextFontSize = `calc(1.4rem * ${globalUiScale})`; 
-  const dateLineLabelFontSize = `calc(0.65rem * ${globalUiScale})`; 
-
+  // Font sizes using dynamic font system + globalUiScale - Updates automatically
+  const characterNameFontSize = `calc(var(--dynamic-font-size-lg) * ${globalUiScale})`;  
+  const lifespanTextFontSize = `calc(var(--dynamic-font-size-sm) * ${globalUiScale})`;   
+  const siblingNameFontSize = `calc(var(--dynamic-font-size-md) * ${globalUiScale})`;  
+  const yearMarkerMajorFontSize = `calc(var(--dynamic-font-size-md) * ${globalUiScale})`;  
+  const yearMarkerMinorFontSize = `calc(var(--dynamic-font-size-sm) * ${globalUiScale})`;  
+  const eventIconFontSize = `calc(var(--dynamic-font-size-md) * ${globalUiScale})`;  
+  const eventTextFontSize = `calc(var(--dynamic-font-size-xl) * ${globalUiScale})`;  
+  const dateLineLabelFontSize = `calc(var(--dynamic-font-size-xs) * ${globalUiScale})`;  
   const [expandedSiblingGroups, setExpandedSiblingGroups] = useState<Record<string, boolean>>({});
   const mainTimelineContentRef = useRef<HTMLDivElement>(null); 
   const [timelineHeight, setTimelineHeight] = useState(0);
+
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const rulerContentRef = useRef<HTMLDivElement>(null);  // Robust scroll synchronization system
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    const rulerContainer = rulerContentRef.current;
+    
+    if (!scrollContainer) return;
+    
+    let isScrolling = false;
+    
+    const syncScroll = (sourceScrollLeft: number) => {
+      if (isScrolling) return;
+      
+      isScrolling = true;
+      
+      // Update scroll position state for floating elements
+      setScrollPosition(sourceScrollLeft);
+      
+      // Perfect synchronization: both containers use exact same scroll position
+      if (scrollContainer.scrollLeft !== sourceScrollLeft) {
+        scrollContainer.scrollLeft = sourceScrollLeft;
+      }
+      
+      // Only sync ruler if it's visible (sticky)
+      if (isYearRulerSticky && rulerContainer && rulerContainer.scrollLeft !== sourceScrollLeft) {
+        rulerContainer.scrollLeft = sourceScrollLeft;
+      }
+      
+      requestAnimationFrame(() => {
+        isScrolling = false;
+      });
+    };
+    
+    const handleMainScroll = () => {
+      syncScroll(scrollContainer.scrollLeft);
+    };
+    
+    const handleRulerScroll = () => {
+      if (isYearRulerSticky) {
+        syncScroll(rulerContainer?.scrollLeft || 0);
+      }
+    };
+    
+    // Add scroll listeners with passive: true for better performance
+    scrollContainer.addEventListener('scroll', handleMainScroll, { passive: true });
+    if (isYearRulerSticky && rulerContainer) {
+      rulerContainer.addEventListener('scroll', handleRulerScroll, { passive: true });
+    }
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleMainScroll);
+      if (isYearRulerSticky && rulerContainer) {
+        rulerContainer.removeEventListener('scroll', handleRulerScroll);
+      }
+    };
+  }, [isYearRulerSticky]);  // Calculate floating name position
+  const getFloatingNamePosition = (personX: number, personWidth: number, nameWidth: number = 150) => {
+    const visibleStart = scrollPosition;
+    
+    // If person bar starts before visible area and extends into it
+    if (personX < visibleStart && (personX + personWidth) > visibleStart) {
+      return Math.min(visibleStart + 10, personX + personWidth - nameWidth);
+    }
+    
+    // If person bar is fully visible or starts in visible area
+    return personX;
+  };
+  // Sistema de detecção de proximidade e alinhamento anti-sobreposição
+  const calculateEventAlignment = (events: any[], currentEventIndex: number, eventX: number) => {
+    const PROXIMITY_THRESHOLD = 100; // Distância em pixels para considerar próximo
+    
+    let alignmentStyle = 'center'; // Padrão: centralizado
+    let offsetX = 0;
+    
+    // Verificar eventos próximos
+    for (let i = 0; i < events.length; i++) {
+      if (i === currentEventIndex) continue;
+      
+      const otherEvent = events[i];
+      const otherEventX = getPixelX(getDisplayYear(otherEvent.year));
+      const distance = Math.abs(eventX - otherEventX);
+      
+      if (distance < PROXIMITY_THRESHOLD) {
+        // Eventos próximos detectados - aplicar estratégia anti-sobreposição
+        if (eventX < otherEventX) {
+          // Evento atual está mais no passado - alinhar à direita
+          alignmentStyle = 'right';
+          offsetX = -60; // Move para a direita da linha
+        } else {
+          // Evento atual está mais no futuro - alinhar à esquerda
+          alignmentStyle = 'left';
+          offsetX = 60; // Move para a esquerda da linha
+        }
+        break; // Primeira proximidade encontrada já define o alinhamento
+      }
+    }
+    
+    return { alignmentStyle, offsetX };
+  };  // Sistema simplificado de detecção de proximidade para datas na régua
+  const calculateIndividualYearAlignment = (allYearsData: { year: number, x: number, id: string, type: string }[], currentIndex: number) => {
+    const PROXIMITY_THRESHOLD = 60; // Distância em pixels para considerar próximo
+    const currentYearData = allYearsData[currentIndex];
+    
+    let alignmentClass = 'text-center'; // Padrão: centralizado
+    let containerWidth = '80px'; // Largura padrão do container
+    
+    // Verificar TODOS os outros anos individualmente (nascimento, morte de qualquer personagem)
+    for (let i = 0; i < allYearsData.length; i++) {
+      if (i === currentIndex) continue; // Pular o próprio ano
+      
+      const otherYearData = allYearsData[i];
+      const distance = Math.abs(currentYearData.x - otherYearData.x);
+      
+      if (distance < PROXIMITY_THRESHOLD) {
+        // Proximidade detectada - aplicar estratégia baseada no ANO, não no personagem
+        containerWidth = '120px'; // Container maior para acomodar o deslocamento
+        if (currentYearData.year < otherYearData.year) {
+          // Ano atual está mais no PASSADO → alinhar à DIREITA
+          alignmentClass = 'text-right';
+        } else {
+          // Ano atual está mais no FUTURO → alinhar à ESQUERDA  
+          alignmentClass = 'text-left';
+        }
+        break; // Primeira proximidade encontrada já define o alinhamento
+      }
+    }
+    
+    return { alignmentClass, containerWidth };
+  };
 
   const getDisplayYear = (relativeYear?: number): number | undefined => {
     if (relativeYear === undefined) return undefined;
@@ -483,8 +616,7 @@ const processedEventsData = useMemo(() => {
 
   const toggleSiblingExpansion = (parentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setExpandedSiblingGroups(prev => ({ ...prev, [parentId]: !prev[parentId] }));
-  };
+    setExpandedSiblingGroups(prev => ({ ...prev, [parentId]: !prev[parentId] }));  };
 
   const getEventIcon = (eventName: string, className: string = "w-5 h-5") => {
     const lowerEventName = eventName.toLowerCase();
@@ -496,23 +628,7 @@ const processedEventsData = useMemo(() => {
     return <CalendarDaysIcon className={className} />;
   }
 
-  const customYearLabel = (yearVal: number | undefined, type: 'event' = 'event') => {
-    if (yearVal === undefined) return null;
-    const xPos = getPixelX(yearVal);
-    // const labelColor = SEMANTIC_COLOR_VARS.eventLine; // Replaced by text-theme-event-line
-    return (
-      <div
-        key={`${type}-year-${yearVal}-${xPos}`}
-        style={{ position: 'absolute', left: `${xPos}px`, top: '25px', zIndex: Z_INDICES.yearHeader + 1 }}
-        className="transform -translate-x-1/2 text-theme-event-line"
-      >
-        <span className="px-1 rounded bg-black/60" style={{fontSize: yearMarkerMinorFontSize}}>
-          {Math.round(yearVal)} {yearReferenceMode === 'AC' ? 'aC' : ''}
-        </span>
-         <div className="w-px h-3 mx-auto bg-theme-event-line"></div>
-      </div>
-    );
-  };
+  // Removido: customYearLabel - não mais usado com nova estrutura de 3 zonas
 
   const findNextVisibleCovenantDescendant = (
     currentPersonId: string,
@@ -706,19 +822,17 @@ const processedEventsData = useMemo(() => {
           backgroundColor: barColor,
           zIndex: Z_INDICES.timelineCharacterBars,
         }}
-        className="text-white flex items-center justify-start rounded shadow-md hover:opacity-80 transition-opacity"
+        className="text-theme-character-bar-text flex items-center justify-start rounded shadow-md hover:opacity-80 transition-opacity"
         title={`${p.name}\n${lifespanInfo}`}
         role="button"
         tabIndex={0}
         onClick={() => onSelectPerson(p)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectPerson(p);}}
-      >
-        <div className={`flex items-center h-full ${showCharacterBarControls && !isSibling ? 'w-auto min-w-[60px]' : 'w-auto'}`}>
+      >        <div className={`flex items-center h-full ${showCharacterBarControls && !isSibling ? 'w-auto min-w-[60px]' : 'w-auto'}`}>
           {showCharacterBarControls && !isSibling && (
-            <div style={{ transform: `scale(${globalUiScale * 0.8})` }} className="flex items-center">
-                <button
+            <div style={{ transform: `scale(${Math.min(globalUiScale * 0.6, 1.0)})`, transformOrigin: 'left center' }} className="flex items-center">                <button
                     onClick={(e) => { e.stopPropagation(); onToggleCharacterVisibility(p.id); }}
-                    className="p-1 text-gray-300 hover:text-red-400 focus:outline-none"
+                    className="md-interactive character-button p-1 text-theme-control-icon hover:text-red-400 focus:outline-none rounded-md-sm"
                     title={p.isVisible ? "Ocultar personagem" : "Mostrar personagem"}
                     aria-pressed={!p.isVisible}
                 >
@@ -726,16 +840,15 @@ const processedEventsData = useMemo(() => {
                 </button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onTogglePersonLifeLine(p.id); }}
-                    className={`p-1.5 focus:outline-none transition-colors ${activePersonLifeLines[p.id] ? 'text-yellow-400' : 'text-gray-300 hover:text-white'}`}
+                    className={`md-interactive character-button p-1.5 focus:outline-none transition-colors rounded-md-sm ${activePersonLifeLines[p.id] ? 'text-yellow-400' : 'text-theme-control-icon hover:text-theme-character-bar-text'}`}
                     title={activePersonLifeLines[p.id] ? "Ocultar linhas de vida" : "Mostrar linhas de vida"}
                     aria-pressed={!!activePersonLifeLines[p.id]}
                 >
                     {activePersonLifeLines[p.id] ? <ArrowsPointingOutIcon className="w-5 h-5" /> : <ArrowsPointingInIcon className="w-5 h-5" />}
                 </button>
-                {hasVisibleExpandableSiblings && (
-                  <button 
+                {hasVisibleExpandableSiblings && (                  <button 
                     onClick={(e) => toggleSiblingExpansion(p.id, e)} 
-                    className="p-0.5 focus:outline-none text-gray-300 hover:text-white" 
+                    className="md-interactive character-button p-0.5 focus:outline-none text-theme-control-icon hover:text-theme-character-bar-text rounded-md-sm" 
                     title={expandedSiblingGroups[p.id] ? "Recolher irmãos" : "Expandir irmãos"} 
                     aria-expanded={!!expandedSiblingGroups[p.id]}
                   >
@@ -744,142 +857,198 @@ const processedEventsData = useMemo(() => {
                 )}
             </div>
           )}
-        </div>
-        <div
+        </div>        <div
           className={`flex-grow flex flex-col justify-center h-full cursor-pointer ${textContainerPadding} overflow-hidden`}
-        >
-          <span className="font-semibold truncate leading-tight" style={{ fontSize: nameFs }}>
+          style={{
+            transform: showCharacterBarControls ? 
+              `translateX(${Math.max(0, getFloatingNamePosition(p.x, p.barWidthPx) - p.x)}px)` : 
+              'none'
+          }}
+        >          <span className="dynamic-text-lg font-md-title-medium truncate leading-tight" style={{ fontSize: nameFs }}>
             {p.name}
-          </span>
-          {(p.isCovenantLine || isSibling) && ( 
-            <span className="opacity-80 truncate leading-tight" style={{ fontSize: lifespanFs }}>
+          </span>{(p.isCovenantLine || isSibling) && showCharacterBarControls && ( 
+            <span className="truncate leading-tight text-theme-lifespan-text dynamic-text-sm" style={{ fontSize: lifespanFs }}>
               {lifespanInfo}
             </span>
           )}
         </div>
-        {p.isDeathUnknown && <span className="ml-auto mr-2 opacity-70" style={{ fontSize: lifespanFs }}>?</span>}
-      </div>
-    );
+        {p.isDeathUnknown && showCharacterBarControls && <span className="ml-auto mr-2 text-theme-lifespan-text" style={{ fontSize: lifespanFs }}>?</span>}
+      </div>    );
 
-    if (activePersonLifeLines[p.id] && displayBirthYearText !== undefined && !isSibling) {
-      elements.push(
-        <div
-          key={`birthyear-${p.id}`}
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            left: `${p.x - 5}px`, 
-            top: `${actualY + currentBarHeight / 2}px`,
-            transform: 'translate(-100%, -50%)', 
-            zIndex: Z_INDICES.timelineCharacterBars + 1, 
-            backgroundColor: 'var(--app-bg-color, #000)', // Keep direct var for dynamic theme switch
-            padding: '2px 4px',
-            borderRadius: '3px',
-            fontSize: dateLineLabelFontSize
-          }}
-          className="whitespace-nowrap shadow-md text-theme-person-line-active"
-        >
-          {Math.round(displayBirthYearText)}{yearSuffix}
-        </div>
-      );
-    }
-
-    if (activePersonLifeLines[p.id] && !isSibling) { 
-        elements.push(
-          <div
-            key={`deathyear-${p.id}`}
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              left: `${p.x + p.barWidthPx + 5}px`, 
-              top: `${actualY + currentBarHeight / 2}px`,
-              transform: 'translateY(-50%)', 
-              zIndex: Z_INDICES.timelineCharacterBars + 1,
-              backgroundColor: 'var(--app-bg-color, #000)', // Keep direct var
-              padding: '2px 4px',
-              borderRadius: '3px',
-              fontSize: dateLineLabelFontSize
-            }}
-            className="whitespace-nowrap shadow-md text-theme-person-line-active"
-          >
-            &#10013; {displayDeathYearText !== undefined ? Math.round(displayDeathYearText) : '?'}{yearSuffix}
-          </div>
-        );
-    }
-    return elements;
+    // Removido: datas de nascimento e morte ao lado dos personagens
+    // Agora aparecem apenas na régua cronológica quando linhas de vida estão ativas
+      return elements;
   };
-  const yearRulerContent = (
-    <div
-      style={{ 
-        height: `${SCALED_YEAR_HEADER_HEIGHT}px`, 
-        width: `${totalPixelWidth}px`, 
-        position: isYearRulerSticky ? 'sticky' : 'absolute', 
-        top: 0, 
-        left: 0,
-        zIndex: Z_INDICES.yearHeader 
-      }}
-      className="flex items-end px-4 bg-theme-header-bg"
-      aria-hidden="true"
-    >
-      {yearMarkers.map(marker => (
-        <div key={`year-marker-${marker.year}-${marker.x}`} style={{ position: 'absolute', left: `${marker.x}px`, bottom: '0px'}} className="h-full flex flex-col items-center justify-end">
-            <span 
-              className={marker.isMajor ? 'text-theme-year-marker-major' : 'text-theme-year-marker-minor'}
-              style={{ 
-              fontSize: marker.isMajor ? yearMarkerMajorFontSize : yearMarkerMinorFontSize,
-              fontWeight: marker.isMajor ? 'bold' : 'normal',
-              opacity: marker.isMajor ? 1 : 0.8,
-            }}>
-            {Math.round(marker.year)} {yearReferenceMode === 'AC' ? <span style={{fontSize: `calc(0.6rem * ${globalUiScale})`}}>aC</span> : ''}
-          </span>
-          <div 
-            className={`w-px ${marker.isMajor ? 'h-8 bg-theme-year-marker-major' : 'h-4 bg-theme-year-marker-minor'}`} 
-            style={{ height: marker.isMajor ? BASE_DIMENSIONS.timelineMarkerMajorHeight * globalUiScale : BASE_DIMENSIONS.timelineMarkerMinorHeight * globalUiScale }}
-          ></div>
-        </div>
-      ))}
-      {events.map(event => { 
-        const eventDisplayYear = getDisplayYear(event.year);
-        if (eventDisplayYear === undefined) return null;
-        return customYearLabel(eventDisplayYear, 'event');
-      })}
-    </div>
-  );
-
 
   return (
     <div className="w-full h-full flex overflow-hidden relative bg-theme-app-bg">
-      <div className="flex-grow h-full overflow-auto relative" id="timeline-scroll-container" role="region" aria-label="Linha do Tempo Genealógica">
+      <div 
+        className="flex-grow h-full relative overflow-hidden" 
+        role="region" 
+        aria-label="Linha do Tempo Genealógica"
+      >
+          {/* Régua cronológica - agora sempre sincronizada */}
+        {isYearRulerSticky && (
+          <div 
+            className="w-full overflow-x-auto overflow-y-hidden"
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: Z_INDICES.yearHeader,
+              height: `${SCALED_YEAR_HEADER_HEIGHT}px`
+            }}
+            ref={rulerContentRef}
+          >
+          <div
+            style={{ 
+              height: `${SCALED_YEAR_HEADER_HEIGHT}px`, 
+              width: `${totalPixelWidth}px`,
+            }}
+            className="flex items-end px-4 bg-theme-header-bg relative"
+            aria-hidden="true"
+          >
+            {/* ZONA 1: Anos principais (500/1000) e menores (100) com linhas verticais */}
+            {yearMarkers.map(marker => (
+              <div key={`year-marker-${marker.year}-${marker.x}`} style={{ position: 'absolute', left: `${marker.x}px`, bottom: marker.isMajor ? '0px' : '8px'}} className="h-full flex flex-col items-center justify-end">
+                  <span 
+                    className={`${marker.isMajor ? 'text-theme-year-marker-major dynamic-text-md' : 'text-theme-year-marker-minor dynamic-text-sm'}`}
+                    style={{ 
+                    fontSize: marker.isMajor ? yearMarkerMajorFontSize : yearMarkerMinorFontSize,
+                    fontWeight: marker.isMajor ? 'bold' : 'normal',
+                    opacity: marker.isMajor ? 1 : 0.8,
+                  }}>
+                  {Math.round(marker.year)} {yearReferenceMode === 'AC' ? <span className="dynamic-text-xs" style={{fontSize: `calc(var(--dynamic-font-size-xs) * ${globalUiScale})`}}>aC</span> : ''}
+                </span>
+                {/* Linhas verticais para anos principais E menores */}
+                <div 
+                  className={`w-px ${marker.isMajor ? 'bg-theme-year-marker-major' : 'bg-theme-year-marker-minor'}`} 
+                  style={{ height: marker.isMajor ? BASE_DIMENSIONS.timelineMarkerMajorHeight * globalUiScale : (BASE_DIMENSIONS.timelineMarkerMinorHeight * globalUiScale) }}
+                ></div>
+              </div>
+            ))}            {/* ZONA 2: Eventos - 50px acima da base (centralizados e com anti-sobreposição) */}
+            {events.map((event, eventIndex) => { 
+              const eventDisplayYear = getDisplayYear(event.year);
+              if (eventDisplayYear === undefined) return null;
+              const eventX = getPixelX(eventDisplayYear);
+              
+              // Calcular alinhamento baseado em proximidade
+              const { alignmentStyle, offsetX } = calculateEventAlignment(events, eventIndex, eventX);
+              
+              // Determinar transform baseado no alinhamento
+              let transform = 'translateX(-50%)'; // Padrão: centralizado
+              if (alignmentStyle === 'left') {
+                transform = 'translateX(-100%)'; // Alinhado à esquerda
+              } else if (alignmentStyle === 'right') {
+                transform = 'translateX(0%)'; // Alinhado à direita
+              }
+              
+              return (
+                <div 
+                  key={`event-ruler-${event.id}`} 
+                  style={{ 
+                    position: 'absolute', 
+                    left: `${eventX + offsetX}px`, 
+                    bottom: '50px',
+                    transform: transform
+                  }} 
+                  className="flex flex-col items-center"
+                >
+                  <span className="px-1 rounded bg-theme-timeline-label-bg text-theme-timeline-label-text dynamic-text-sm whitespace-nowrap" 
+                        style={{fontSize: yearMarkerMinorFontSize}}>
+                    {Math.round(eventDisplayYear)} {yearReferenceMode === 'AC' ? 'aC' : ''}
+                  </span>
+                </div>
+              );
+            })}            {/* ZONA 3: Nascimento e Morte - 75px acima da base (verificação individual de todos os anos) */}
+            {(() => {
+              // Coletar TODOS os anos individuais (nascimento e morte) de TODOS os personagens
+              const allYearsData: { year: number, x: number, id: string, type: string, personId: string, element: React.ReactElement }[] = [];
+              
+              visibleMainCovenantPeopleDisplayData.filter(p => activePersonLifeLines[p.id] && showCharacterBarControls).forEach(p => {
+                const birthDisplayYear = yearReferenceMode === 'AC' ? p.displayBirthAC : p.displayBirthRelative;
+                const deathDisplayYear = yearReferenceMode === 'AC' ? p.displayDeathAC : p.displayDeathRelative;
+                const yearSuffix = yearReferenceMode === 'AC' ? 'aC' : '';
+                
+                // Adicionar ano de NASCIMENTO se existir
+                if (birthDisplayYear !== undefined) {
+                  const birthX = getPixelX(birthDisplayYear);
+                  allYearsData.push({
+                    year: birthDisplayYear,
+                    x: birthX,
+                    id: `birth-${p.id}`,
+                    type: 'birth',
+                    personId: p.id,
+                    element: (
+                      <span className="dynamic-text-xs text-white bg-green-600 px-1 rounded text-center whitespace-nowrap"
+                            style={{ fontSize: dateLineLabelFontSize }}>
+                        ⭐{Math.round(birthDisplayYear)}{yearSuffix}
+                      </span>
+                    )
+                  });
+                }
+                
+                // Adicionar ano de MORTE se existir e for diferente do nascimento
+                if (deathDisplayYear !== undefined && deathDisplayYear !== birthDisplayYear) {
+                  const deathX = getPixelX(deathDisplayYear);
+                  allYearsData.push({
+                    year: deathDisplayYear,
+                    x: deathX,
+                    id: `death-${p.id}`,
+                    type: 'death',
+                    personId: p.id,
+                    element: (
+                      <span className="dynamic-text-xs text-white bg-red-600 px-1 rounded text-center whitespace-nowrap"
+                            style={{ fontSize: dateLineLabelFontSize }}>
+                        †{Math.round(deathDisplayYear)}{yearSuffix}
+                      </span>
+                    )
+                  });
+                }
+              });              // Renderizar cada ano com verificação individual de proximidade
+              return allYearsData.map((yearData, index) => {
+                // Verificar proximidade deste ano com TODOS os outros anos (de qualquer personagem)
+                const { alignmentClass, containerWidth } = calculateIndividualYearAlignment(allYearsData, index);
+                
+                // Calcular offset baseado na largura do container para centralizar corretamente
+                const containerWidthPx = parseInt(containerWidth);
+                const leftOffset = containerWidthPx / 2;
+                
+                return (
+                  <div 
+                    key={yearData.id} 
+                    style={{ 
+                      position: 'absolute', 
+                      left: `${yearData.x - leftOffset}px`, // Centralizar baseado na largura real do container
+                      bottom: '75px',
+                      width: containerWidth
+                    }} 
+                    className={`${alignmentClass}`}
+                    title={`${yearData.type === 'birth' ? 'Nascimento' : 'Morte'} - ${yearData.personId} (Ano ${yearData.year})`}
+                  >
+                    {yearData.element}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+        )}
         
-        <button
-          onClick={() => setIsYearRulerSticky(!isYearRulerSticky)}
-          className="transition-colors duration-150 focus:outline-none hover:opacity-80 p-1.5 rounded-md bg-theme-button-bg text-theme-text"
-          title={isYearRulerSticky ? "Desafixar Régua de Anos" : "Fixar Régua de Anos"}
-          aria-pressed={isYearRulerSticky}
-          style={{
-            position: 'sticky', 
-            top: `${8 * globalUiScale}px`, 
-            left: `${totalPixelWidth - (36 * globalUiScale) - (8*globalUiScale)}px`, // Positioned to the right, considering button width and padding
-            width: `${36 * globalUiScale}px`, // Approximate width for a square button
-            height: `${36 * globalUiScale}px`,
-            zIndex: Z_INDICES.yearHeader + 5,
-          }}
+        {/* Conteúdo principal - agora sempre sincronizado */}
+        <div 
+          className="flex-grow overflow-x-auto overflow-y-auto" 
+          id="timeline-scroll-container" 
+          ref={scrollContainerRef}
         >
-          {isYearRulerSticky ? <LockClosedIcon className="w-5 h-5 mx-auto" /> : <LockOpenIcon className="w-5 h-5 mx-auto" />}
-        </button>
-        
-        {yearRulerContent}
-        
-        <div
-          ref={mainTimelineContentRef}
-          className="relative timeline-bg-gradient"
-          style={{
-            width: `${totalPixelWidth}px`,
-            minHeight: `${timelineHeight}px`, 
-            paddingTop: isYearRulerSticky ? `0px` : `${SCALED_YEAR_HEADER_HEIGHT}px`, 
-            zIndex: Z_INDICES.timelineBackground,
-          }}
-        >
+          <div
+            ref={mainTimelineContentRef}
+            className="relative timeline-bg-gradient"            style={{
+              width: `${totalPixelWidth}px`,
+              minHeight: `${timelineHeight}px`, 
+              paddingTop: isYearRulerSticky ? `0px` : `20px`, // Padding mínimo quando régua está escondida
+              zIndex: Z_INDICES.timelineBackground,
+            }}
+          >
             {/* Horizontal Grid Lines */}
             {Array.from({ length: Math.floor(timelineHeight / (SCALED_BAR_HEIGHT + SCALED_BAR_VERTICAL_GAP)) + 15 }).map((_, i) => (
                 <div
@@ -912,12 +1081,30 @@ const processedEventsData = useMemo(() => {
                 {deathX !== undefined && <div aria-hidden="true" className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal} bg-theme-person-line-active`} style={{ left: `${deathX}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.activePersonLines, opacity: 0.7 }}></div>}
               </React.Fragment>
             );
-          })}
-
-          {processedEventsData.map((event) => {
+          })}          {processedEventsData.map((event, eventIndex) => {
             if (!event) return null; 
             const xPos = event.xPos;
-            const eventNameY = event.eventNameY;
+            let eventNameY = event.eventNameY;
+            
+            // Calcular alinhamento baseado em proximidade para o nome do evento
+            const { alignmentStyle, offsetX } = calculateEventAlignment(events, eventIndex, xPos);
+            
+            // Collision detection for event labels
+            const collisionOffset = eventIndex * 30; // Stagger vertically
+            const eventLabelOffset = Math.min(collisionOffset, 150); // Max offset 150px
+            eventNameY += eventLabelOffset;
+            
+            // Posição centralizada na linha do evento (sem movimento horizontal)
+            const centeredX = xPos + offsetX;
+            
+            // Determinar transform baseado no alinhamento
+            let transform = 'translateX(-50%)'; // Padrão: centralizado
+            if (alignmentStyle === 'left') {
+              transform = 'translateX(-100%)'; // Alinhado à esquerda
+            } else if (alignmentStyle === 'right') {
+              transform = 'translateX(0%)'; // Alinhado à direita
+            }
+            
             return (
               <React.Fragment key={`event-full-${event.id}`}>
                 <div
@@ -945,22 +1132,22 @@ const processedEventsData = useMemo(() => {
                         >
                         <div className={`group-hover:scale-125 transition-transform text-theme-event-line`} style={{fontSize: eventIconFontSize}}>{getEventIcon(event.name, `w-${Math.round(5 * globalUiScale)} h-${Math.round(5 * globalUiScale)}`)}</div>
                     </div>
-                </div>
+                </div>                
                 <div
                   style={{
                     position: 'absolute',
-                    left: `${xPos + 8 * globalUiScale}px`, 
+                    left: `${centeredX}px`, 
                     top: `${eventNameY}px`,
                     zIndex: Z_INDICES.eventIconsAndLabels,
                     writingMode: 'vertical-rl', 
-                    transform: 'rotate(180deg)', 
+                    transform: `rotate(180deg) ${transform}`, // Aplicar rotação + alinhamento
                     maxHeight: `${SCALED_EVENT_LABEL_MAX_HEIGHT}px`,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap', 
                     fontSize: eventTextFontSize 
                   }}
-                  className={`px-0.5 py-1 bg-black/60 rounded shadow cursor-pointer text-theme-text`}
+                  className={`px-0.5 py-1 bg-theme-event-label-bg text-theme-event-label-text rounded shadow cursor-pointer dynamic-text-xl`}
                   onClick={() => onSelectEvent(event)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectEvent(event);}}
                   role="button"
@@ -1021,10 +1208,10 @@ const processedEventsData = useMemo(() => {
                         isDeathUnknown: sibling.deathYear === undefined && sibling.totalLifespan === undefined,
                     };
                     return renderPersonBarWithLifespan(siblingDisplayData, true, 0, siblingY);
-                });
-            }
+                });            }
             return [...parentElements, ...siblingElements];
           })}
+          </div>
         </div>
       </div>
     </div>

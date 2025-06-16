@@ -1,0 +1,562 @@
+/* Material Design 3 CSS Custom Properties Implementation */
+/* Following official Material Design 3 guidelines and best practices */
+
+:root {
+  /* Reference Tokens - Base fonts and values */
+  --md-ref-typeface-brand: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --md-ref-typeface-plain: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    /* Typography Scale Tokens - Material Design 3 Specification */
+  /* Display Scale - Para títulos principais e destaques */
+  --md-sys-typescale-display-large-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-large-size: 3.5rem;
+  --md-sys-typescale-display-large-line-height: 4rem;
+  --md-sys-typescale-display-large-weight: 400;
+  --md-sys-typescale-display-large-tracking: -0.25px;
+
+  --md-sys-typescale-display-medium-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-medium-size: 2.813rem;
+  --md-sys-typescale-display-medium-line-height: 3.25rem;
+  --md-sys-typescale-display-medium-weight: 400;
+  --md-sys-typescale-display-medium-tracking: 0px;
+
+  --md-sys-typescale-display-small-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-display-small-size: 2.25rem;
+  --md-sys-typescale-display-small-line-height: 2.75rem;
+  --md-sys-typescale-display-small-weight: 400;
+  --md-sys-typescale-display-small-tracking: 0px;
+
+  /* Headline Scale - Para títulos de seções */
+  --md-sys-typescale-headline-large-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-large-size: 2rem;
+  --md-sys-typescale-headline-large-line-height: 2.5rem;
+  --md-sys-typescale-headline-large-weight: 400;
+  --md-sys-typescale-headline-large-tracking: 0px;
+
+  --md-sys-typescale-headline-medium-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-medium-size: 1.75rem;
+  --md-sys-typescale-headline-medium-line-height: 2.25rem;
+  --md-sys-typescale-headline-medium-weight: 400;
+  --md-sys-typescale-headline-medium-tracking: 0px;
+
+  --md-sys-typescale-headline-small-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-headline-small-size: 1.5rem;
+  --md-sys-typescale-headline-small-line-height: 2rem;
+  --md-sys-typescale-headline-small-weight: 400;
+  --md-sys-typescale-headline-small-tracking: 0px;
+
+  /* Title Scale - Para títulos de componentes */
+  --md-sys-typescale-title-large-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-large-size: 1.375rem;
+  --md-sys-typescale-title-large-line-height: 1.75rem;
+  --md-sys-typescale-title-large-weight: 400;
+  --md-sys-typescale-title-large-tracking: 0px;
+
+  --md-sys-typescale-title-medium-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-medium-size: 1rem;
+  --md-sys-typescale-title-medium-line-height: 1.5rem;
+  --md-sys-typescale-title-medium-weight: 500;
+  --md-sys-typescale-title-medium-tracking: 0.15px;
+
+  --md-sys-typescale-title-small-font: var(--md-ref-typeface-brand);
+  --md-sys-typescale-title-small-size: 0.875rem;
+  --md-sys-typescale-title-small-line-height: 1.25rem;
+  --md-sys-typescale-title-small-weight: 500;
+  --md-sys-typescale-title-small-tracking: 0.1px;
+
+  /* Body Scale - Para texto de conteúdo */
+  --md-sys-typescale-body-large-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-large-size: 1rem;
+  --md-sys-typescale-body-large-line-height: 1.5rem;
+  --md-sys-typescale-body-large-weight: 400;
+  --md-sys-typescale-body-large-tracking: 0.5px;
+
+  --md-sys-typescale-body-medium-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-medium-size: 0.875rem;
+  --md-sys-typescale-body-medium-line-height: 1.25rem;
+  --md-sys-typescale-body-medium-weight: 400;
+  --md-sys-typescale-body-medium-tracking: 0.25px;
+
+  --md-sys-typescale-body-small-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-body-small-size: 0.75rem;
+  --md-sys-typescale-body-small-line-height: 1rem;
+  --md-sys-typescale-body-small-weight: 400;
+  --md-sys-typescale-body-small-tracking: 0.4px;
+
+  /* Label Scale - Para rótulos e botões */
+  --md-sys-typescale-label-large-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-large-size: 0.875rem;
+  --md-sys-typescale-label-large-line-height: 1.25rem;
+  --md-sys-typescale-label-large-weight: 500;
+  --md-sys-typescale-label-large-tracking: 0.1px;
+
+  --md-sys-typescale-label-medium-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-medium-size: 0.75rem;
+  --md-sys-typescale-label-medium-line-height: 1rem;
+  --md-sys-typescale-label-medium-weight: 500;
+  --md-sys-typescale-label-medium-tracking: 0.5px;
+
+  --md-sys-typescale-label-small-font: var(--md-ref-typeface-plain);
+  --md-sys-typescale-label-small-size: 0.6875rem;
+  --md-sys-typescale-label-small-line-height: 1rem;
+  --md-sys-typescale-label-small-weight: 500;
+  --md-sys-typescale-label-small-tracking: 0.5px;
+  
+  /* Shape Tokens */
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 50%;
+    /* Elevation Tokens */
+  --md-sys-elevation-level0: none;
+  --md-sys-elevation-level1: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --md-sys-elevation-level2: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --md-sys-elevation-level3: 0px 4px 8px 3px rgba(0, 0, 0, 0.15), 0px 1px 3px rgba(0, 0, 0, 0.3);
+  --md-sys-elevation-level4: 0px 6px 10px 4px rgba(0, 0, 0, 0.15), 0px 2px 3px rgba(0, 0, 0, 0.3);
+  --md-sys-elevation-level5: 0px 8px 12px 6px rgba(0, 0, 0, 0.15), 0px 4px 4px rgba(0, 0, 0, 0.3);
+
+  /* Motion Tokens - Material Design 3 Physics-based Motion */
+  /* Duration Tokens */
+  --md-sys-motion-duration-short1: 50ms;
+  --md-sys-motion-duration-short2: 100ms;
+  --md-sys-motion-duration-short3: 150ms;
+  --md-sys-motion-duration-short4: 200ms;
+  --md-sys-motion-duration-medium1: 250ms;
+  --md-sys-motion-duration-medium2: 300ms;
+  --md-sys-motion-duration-medium3: 350ms;
+  --md-sys-motion-duration-medium4: 400ms;
+  --md-sys-motion-duration-long1: 450ms;
+  --md-sys-motion-duration-long2: 500ms;
+  --md-sys-motion-duration-long3: 550ms;
+  --md-sys-motion-duration-long4: 600ms;
+
+  /* Easing Tokens */
+  --md-sys-motion-easing-linear: linear;
+  --md-sys-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-easing-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --md-sys-motion-easing-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+
+  /* State Layer Opacity Tokens - Material Design 3 Interaction States */
+  --md-sys-state-hover-state-layer-opacity: 0.08;
+  --md-sys-state-focus-state-layer-opacity: 0.12;
+  --md-sys-state-pressed-state-layer-opacity: 0.12;
+  --md-sys-state-selected-state-layer-opacity: 0.12;
+  --md-sys-state-disabled-state-layer-opacity: 0.12;
+  --md-sys-state-dragged-state-layer-opacity: 0.16;
+
+  /* Component-specific shape tokens */
+  --md-comp-button-shape: var(--md-sys-shape-corner-full);
+  --md-comp-card-shape: var(--md-sys-shape-corner-medium);
+  --md-comp-dialog-shape: var(--md-sys-shape-corner-extra-large);
+  --md-comp-text-field-shape: var(--md-sys-shape-corner-extra-small);
+}
+
+/* Light Theme Colors - Claro Clássico (Original do GitHub) */
+:root[data-theme="light"] {
+  /* Primary - Blue palette for classic light theme */
+  --md-sys-color-primary: #3B82F6;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-primary-container: #E1F5FE;
+  --md-sys-color-on-primary-container: #2563EB;
+  
+  /* Secondary - Complementary colors */
+  --md-sys-color-secondary: #60A5FA;
+  --md-sys-color-on-secondary: #FFFFFF;
+  --md-sys-color-secondary-container: #DBEAFE;
+  --md-sys-color-on-secondary-container: #1E40AF;
+  
+  /* Tertiary - Accent colors */
+  --md-sys-color-tertiary: #10B981;
+  --md-sys-color-on-tertiary: #FFFFFF;
+  --md-sys-color-tertiary-container: #ECFDF5;
+  --md-sys-color-on-tertiary-container: #059669;
+  
+  /* Error */
+  --md-sys-color-error: #EC4899;
+  --md-sys-color-on-error: #FFFFFF;
+  --md-sys-color-error-container: #FDF2F8;
+  --md-sys-color-on-error-container: #BE185D;
+  
+  /* Surface & Background - Original Classic light theme */
+  --md-sys-color-surface: #FFFFFF;
+  --md-sys-color-on-surface: #1F2937;
+  --md-sys-color-surface-variant: #F9FAFB;
+  --md-sys-color-on-surface-variant: #4B5563;
+  --md-sys-color-surface-container: #F9FAFB;
+  --md-sys-color-surface-container-low: #FFFFFF;
+  --md-sys-color-surface-container-high: #E5E7EB;
+  --md-sys-color-surface-container-highest: #D1D5DB;
+  
+  --md-sys-color-background: #F9FAFB;
+  --md-sys-color-on-background: #1F2937;
+  
+  /* Outline */
+  --md-sys-color-outline: #D1D5DB;
+  --md-sys-color-outline-variant: #E5E7EB;
+  
+  /* Shadow */
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  
+  /* Inverse */
+  --md-sys-color-inverse-surface: #1F2937;
+  --md-sys-color-inverse-on-surface: #F9FAFB;
+  --md-sys-color-inverse-primary: #60A5FA;/* Legacy compatibility - Original Classic Light Theme from GitHub */
+  --app-bg-color: #F9FAFB;
+  --header-bg-color: #E5E7EB;
+  --timeline-gradient-start: #D1D5DB;
+  --timeline-gradient-end: #9CA3AF;
+  --text-color: #1F2937;
+  --accent-color: #3B82F6;
+  --button-bg-color: #D1D5DB;
+  --button-hover-bg-color: #9CA3AF;
+  --card-bg-color: #FFFFFF;
+  --card-header-color: #4B5563;
+  --border-color: #D1D5DB;
+  --scrollbar-track-color: #F9FAFB;
+  --scrollbar-thumb-color: #D1D5DB;
+  --scrollbar-thumb-hover-color: #9CA3AF;
+  --timeline-year-marker-major-color: #1F2937;
+  --timeline-year-marker-minor-color: #3B82F6;  --timeline-grid-line-color: rgba(0, 0, 0, 0.1);
+  --person-line-active-color: #F59E0B;
+  --event-line-color: #EC4899;
+    /* Contraste melhorado para elementos específicos do tema claro */
+  --timeline-label-bg-color: rgba(31, 41, 55, 0.9);
+  --timeline-label-text-color: #FFFFFF;
+  --character-bar-text-color: #FFFFFF;
+  --event-label-bg-color: rgba(31, 41, 55, 0.9);
+  --event-label-text-color: #FFFFFF;  --control-icon-color: #6B7280;
+  --control-icon-hover-color: #374151;
+  
+  /* Cores das barras de personagem - garantem contraste adequado com texto branco */
+  --person-bar-color-1: #3B82F6;  /* Blue - Primary */
+  --person-bar-color-2: #1E40AF;  /* Dark Blue */
+  --person-bar-color-3: #059669;  /* Dark Green */
+  --person-bar-color-4: #DC2626;  /* Dark Red */  --person-bar-color-5: #7C2D12;  /* Dark Orange */
+  --person-bar-color-6: #6B21A8;  /* Dark Purple */
+  
+  /* Melhor contraste para informações de ano e botões */
+  --year-info-bg-color: #1F2937;
+  --year-info-text-color: #F9FAFB;
+  --lifespan-text-color: #E5E7EB;
+}
+
+/* Dark Theme Colors - Escuro Moderno (Original do GitHub) */
+:root[data-theme="dark"] {
+  /* Primary - Blue palette matching original Escuro Moderno */
+  --md-sys-color-primary: #60A5FA;
+  --md-sys-color-on-primary: #111827;
+  --md-sys-color-primary-container: #374151;
+  --md-sys-color-on-primary-container: #F3F4F6;
+  
+  /* Secondary - Complementary colors */
+  --md-sys-color-secondary: #3B82F6;
+  --md-sys-color-on-secondary: #111827;
+  --md-sys-color-secondary-container: #1D4ED8;
+  --md-sys-color-on-secondary-container: #F3F4F6;
+  
+  /* Tertiary - Purple/Violet colors from personBarPalette */
+  --md-sys-color-tertiary: #7C3AED;
+  --md-sys-color-on-tertiary: #111827;
+  --md-sys-color-tertiary-container: #5B21B6;
+  --md-sys-color-on-tertiary-container: #F3F4F6;
+  
+  /* Error - Pink from personBarPalette */
+  --md-sys-color-error: #DB2777;
+  --md-sys-color-on-error: #111827;
+  --md-sys-color-error-container: #BE185D;
+  --md-sys-color-on-error-container: #FDF2F8;
+  
+  /* Surface & Background - Original Escuro Moderno colors */
+  --md-sys-color-surface: #1F2937;
+  --md-sys-color-on-surface: #F3F4F6;
+  --md-sys-color-surface-variant: #374151;
+  --md-sys-color-on-surface-variant: #D1D5DB;
+  --md-sys-color-surface-container: #1F2937;
+  --md-sys-color-surface-container-low: #111827;
+  --md-sys-color-surface-container-high: #374151;
+  --md-sys-color-surface-container-highest: #4B5563;
+  
+  --md-sys-color-background: #111827;
+  --md-sys-color-on-background: #F3F4F6;
+  
+  /* Outline */
+  --md-sys-color-outline: #4B5563;
+  --md-sys-color-outline-variant: #374151;
+  
+  /* Shadow */
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  
+  /* Inverse */
+  --md-sys-color-inverse-surface: #F3F4F6;
+  --md-sys-color-inverse-on-surface: #111827;
+  --md-sys-color-inverse-primary: #3B82F6;
+  /* Legacy compatibility - Original Escuro Moderno from GitHub */
+  --app-bg-color: #111827;
+  --header-bg-color: #1F2937;
+  --timeline-gradient-start: #374151;
+  --timeline-gradient-end: #4B5563;
+  --text-color: #F3F4F6;
+  --accent-color: #60A5FA;
+  --button-bg-color: #60A5FA;
+  --button-hover-bg-color: #3B82F6;
+  --card-bg-color: #1F2937;
+  --card-header-color: #9CA3AF;
+  --border-color: #4B5563;
+  --scrollbar-track-color: #1F2937;
+  --scrollbar-thumb-color: #4B5563;
+  --scrollbar-thumb-hover-color: #6B7280;
+  --timeline-year-marker-major-color: #F3F4F6;
+  --timeline-year-marker-minor-color: #60A5FA;  --timeline-grid-line-color: rgba(255, 255, 255, 0.1);
+  --person-line-active-color: #FBBF24;
+  --event-line-color: #F472B6;
+    /* Contraste melhorado para elementos específicos do tema escuro */
+  --timeline-label-bg-color: rgba(0, 0, 0, 0.8);
+  --timeline-label-text-color: #F3F4F6;
+  --character-bar-text-color: #F3F4F6;
+  --event-label-bg-color: rgba(0, 0, 0, 0.8);
+  --event-label-text-color: #F3F4F6;  --control-icon-color: #9CA3AF;
+  --control-icon-hover-color: #F3F4F6;
+  
+  /* Cores das barras de personagem - versões claras para o tema escuro */
+  --person-bar-color-1: #60A5FA;  /* Light Blue */
+  --person-bar-color-2: #3B82F6;  /* Blue */
+  --person-bar-color-3: #10B981;  /* Green */
+  --person-bar-color-4: #F87171;  /* Light Red */  --person-bar-color-5: #FB923C;  /* Light Orange */
+  --person-bar-color-6: #A78BFA;  /* Light Purple */
+  
+  /* Melhor contraste para informações de ano e botões */
+  --year-info-bg-color: #374151;
+  --year-info-text-color: #F3F4F6;
+  --lifespan-text-color: #D1D5DB;
+}
+
+/* Component Tokens - Buttons */
+:root {
+  /* Filled Button */
+  --md-filled-button-container-color: var(--md-sys-color-primary);
+  --md-filled-button-label-text-color: var(--md-sys-color-on-primary);
+  --md-filled-button-container-shape: var(--md-sys-shape-corner-full);
+  --md-filled-button-label-text-font: var(--md-sys-typescale-label-large);
+  --md-filled-button-container-height: 40px;
+  --md-filled-button-hover-container-color: var(--md-sys-color-primary-container);
+  --md-filled-button-hover-label-text-color: var(--md-sys-color-on-primary-container);
+  
+  /* Outlined Button */
+  --md-outlined-button-outline-color: var(--md-sys-color-outline);
+  --md-outlined-button-label-text-color: var(--md-sys-color-primary);
+  --md-outlined-button-container-shape: var(--md-sys-shape-corner-full);
+  --md-outlined-button-label-text-font: var(--md-sys-typescale-label-large);
+  --md-outlined-button-container-height: 40px;
+  --md-outlined-button-hover-container-color: var(--md-sys-color-primary-container);
+  --md-outlined-button-hover-label-text-color: var(--md-sys-color-on-primary-container);
+  
+  /* Text Button */
+  --md-text-button-label-text-color: var(--md-sys-color-primary);
+  --md-text-button-label-text-font: var(--md-sys-typescale-label-large);
+  --md-text-button-container-height: 40px;
+  --md-text-button-hover-container-color: var(--md-sys-color-primary-container);
+  --md-text-button-hover-label-text-color: var(--md-sys-color-on-primary-container);
+  
+  /* Elevated Button */
+  --md-elevated-button-container-color: var(--md-sys-color-surface-container-low);
+  --md-elevated-button-label-text-color: var(--md-sys-color-primary);
+  --md-elevated-button-container-shape: var(--md-sys-shape-corner-full);
+  --md-elevated-button-container-elevation: var(--md-sys-elevation-level1);
+  --md-elevated-button-hover-container-elevation: var(--md-sys-elevation-level2);
+  
+  /* Tonal Button */
+  --md-tonal-button-container-color: var(--md-sys-color-secondary-container);
+  --md-tonal-button-label-text-color: var(--md-sys-color-on-secondary-container);
+  --md-tonal-button-container-shape: var(--md-sys-shape-corner-full);
+  --md-tonal-button-label-text-font: var(--md-sys-typescale-label-large);
+}
+
+/* Component Tokens - Cards */
+:root {
+  --md-card-container-color: var(--md-sys-color-surface-container-low);
+  --md-card-container-shape: var(--md-sys-shape-corner-medium);
+  --md-card-container-elevation: var(--md-sys-elevation-level1);
+  --md-card-outline-color: var(--md-sys-color-outline-variant);
+  --md-card-hover-container-elevation: var(--md-sys-elevation-level2);
+}
+
+/* Component Tokens - Modal/Dialog */
+:root {
+  --md-dialog-container-color: var(--md-sys-color-surface-container-high);
+  --md-dialog-container-shape: var(--md-sys-shape-corner-extra-large);
+  --md-dialog-container-elevation: var(--md-sys-elevation-level3);
+  --md-dialog-headline-color: var(--md-sys-color-on-surface);
+  --md-dialog-headline-font: var(--md-sys-typescale-headline-small);
+  --md-dialog-supporting-text-color: var(--md-sys-color-on-surface-variant);
+  --md-dialog-supporting-text-font: var(--md-sys-typescale-body-medium);
+}
+
+/* Component Tokens - Font Size Control */
+:root {
+  --md-font-control-container-color: var(--md-sys-color-surface-container);
+  --md-font-control-container-shape: var(--md-sys-shape-corner-medium);
+  --md-font-control-container-elevation: var(--md-sys-elevation-level2);
+  --md-font-control-label-color: var(--md-sys-color-on-surface);
+  --md-font-control-label-font: var(--md-sys-typescale-title-medium);
+}
+
+/* Accessibility - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Accessibility - High Contrast */
+@media (prefers-contrast: high) {
+  :root {
+    --md-sys-color-outline: #000000;
+    --md-sys-color-outline-variant: #333333;
+  }
+  
+  :root[data-theme="dark"] {
+    --md-sys-color-outline: #FFFFFF;
+    --md-sys-color-outline-variant: #CCCCCC;
+  }
+}
+
+/* Focus Management */
+:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+  border-radius: var(--md-sys-shape-corner-small);
+}
+
+/* Responsive Typography */
+@media (max-width: 768px) {
+  :root {
+    --md-sys-typescale-display-large: 400 2.5rem var(--md-ref-typeface-brand);
+    --md-sys-typescale-display-medium: 400 2rem var(--md-ref-typeface-brand);
+    --md-sys-typescale-headline-large: 400 1.75rem var(--md-ref-typeface-brand);
+  }
+}
+
+/* System Color Scheme Detection */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    /* Apply dark theme when no explicit theme is set and user prefers dark */
+    --md-sys-color-primary: #90CAF9;
+    --md-sys-color-on-primary: #0D47A1;
+    --md-sys-color-surface: #131316;
+    --md-sys-color-on-surface: #E6E1E5;
+    --md-sys-color-background: #10101A;
+    --md-sys-color-on-background: #E6E1E5;
+  }
+}
+
+/* Utility Classes for Material Design Components */
+.md-elevation-0 { box-shadow: var(--md-sys-elevation-level0); }
+.md-elevation-1 { box-shadow: var(--md-sys-elevation-level1); }
+.md-elevation-2 { box-shadow: var(--md-sys-elevation-level2); }
+.md-elevation-3 { box-shadow: var(--md-sys-elevation-level3); }
+.md-elevation-4 { box-shadow: var(--md-sys-elevation-level4); }
+.md-elevation-5 { box-shadow: var(--md-sys-elevation-level5); }
+
+/* Surface and Color Utilities */
+.md-surface { background-color: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); }
+.md-surface-variant { background-color: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant); }
+.md-surface-container { background-color: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface); }
+.md-surface-container-high { background-color: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+.md-primary { background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.md-primary-container { background-color: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.md-secondary { background-color: var(--md-sys-color-secondary); color: var(--md-sys-color-on-secondary); }
+.md-secondary-container { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+
+/* Typography Utilities */
+.md-typography-display-large { font: var(--md-sys-typescale-display-large); }
+.md-typography-display-medium { font: var(--md-sys-typescale-display-medium); }
+.md-typography-display-small { font: var(--md-sys-typescale-display-small); }
+.md-typography-headline-large { font: var(--md-sys-typescale-headline-large); }
+.md-typography-headline-medium { font: var(--md-sys-typescale-headline-medium); }
+.md-typography-headline-small { font: var(--md-sys-typescale-headline-small); }
+.md-typography-title-large { font: var(--md-sys-typescale-title-large); }
+.md-typography-title-medium { font: var(--md-sys-typescale-title-medium); }
+.md-typography-title-small { font: var(--md-sys-typescale-title-small); }
+.md-typography-body-large { font: var(--md-sys-typescale-body-large); }
+.md-typography-body-medium { font: var(--md-sys-typescale-body-medium); }
+.md-typography-body-small { font: var(--md-sys-typescale-body-small); }
+.md-typography-label-large { font: var(--md-sys-typescale-label-large); }
+.md-typography-label-medium { font: var(--md-sys-typescale-label-medium); }
+.md-typography-label-small { font: var(--md-sys-typescale-label-small); }
+
+/* Shape Utilities */
+.md-shape-corner-none { border-radius: var(--md-sys-shape-corner-none); }
+.md-shape-corner-extra-small { border-radius: var(--md-sys-shape-corner-extra-small); }
+.md-shape-corner-small { border-radius: var(--md-sys-shape-corner-small); }
+.md-shape-corner-medium { border-radius: var(--md-sys-shape-corner-medium); }
+.md-shape-corner-large { border-radius: var(--md-sys-shape-corner-large); }
+.md-shape-corner-extra-large { border-radius: var(--md-sys-shape-corner-extra-large); }
+.md-shape-corner-full { border-radius: var(--md-sys-shape-corner-full); }
+
+/* State Layer Utilities */
+.md-state-layer {
+  position: relative;
+  overflow: hidden;
+}
+
+.md-state-layer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: currentColor;
+  opacity: 0;
+  transition: opacity var(--md-sys-motion-duration-short4) var(--md-sys-motion-easing-standard);
+  pointer-events: none;
+}
+
+.md-state-layer:hover::before {
+  opacity: var(--md-sys-state-hover-state-layer-opacity);
+}
+
+.md-state-layer:focus::before {
+  opacity: var(--md-sys-state-focus-state-layer-opacity);
+}
+
+.md-state-layer:active::before {
+  opacity: var(--md-sys-state-pressed-state-layer-opacity);
+}
+
+/* Interaction State Utilities */
+.md-interactive {
+  cursor: pointer;
+  transition: all var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.md-interactive:hover {
+  transform: translateY(-1px);
+}
+
+.md-interactive:active {
+  transform: translateY(0);
+}
+
+.md-interactive:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+/* Focus Ring Enhancement */
+.md-focus-ring {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+  border-radius: var(--md-sys-shape-corner-small);
+}

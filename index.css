@@ -1,3 +1,113 @@
+/* Import Material Design 3 tokens */
+@import './material-design-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Dynamic Font Size System - Updates automatically */
+:root {
+  --dynamic-font-size-base: 16px;
+  --dynamic-font-size-multiplier: 1.0;
+  --dynamic-font-size-xs: calc(var(--dynamic-font-size-base) * 0.75 * var(--dynamic-font-size-multiplier));
+  --dynamic-font-size-sm: calc(var(--dynamic-font-size-base) * 0.875 * var(--dynamic-font-size-multiplier));
+  --dynamic-font-size-md: calc(var(--dynamic-font-size-base) * 1.0 * var(--dynamic-font-size-multiplier));
+  --dynamic-font-size-lg: calc(var(--dynamic-font-size-base) * 1.125 * var(--dynamic-font-size-multiplier));
+  --dynamic-font-size-xl: calc(var(--dynamic-font-size-base) * 1.25 * var(--dynamic-font-size-multiplier));
+  --dynamic-font-size-2xl: calc(var(--dynamic-font-size-base) * 1.5 * var(--dynamic-font-size-multiplier));
+  --dynamic-font-size-3xl: calc(var(--dynamic-font-size-base) * 2.0 * var(--dynamic-font-size-multiplier));
+}
+
+/* Character names, ruler text, card content - all use dynamic sizing */
+.character-name,
+.ruler-text,
+.card-content,
+.event-name,
+.person-info,
+.timeline-text {
+  font-size: var(--dynamic-font-size-md);
+}
+
+.character-name-large {
+  font-size: var(--dynamic-font-size-lg);
+}
+
+.ruler-numbers {
+  font-size: var(--dynamic-font-size-sm);
+}
+
+.event-labels {
+  font-size: var(--dynamic-font-size-sm);
+}
+
+/* Global scaling for all text elements */
+.dynamic-text-xs { font-size: var(--dynamic-font-size-xs) !important; }
+.dynamic-text-sm { font-size: var(--dynamic-font-size-sm) !important; }
+.dynamic-text-md { font-size: var(--dynamic-font-size-md) !important; }
+.dynamic-text-lg { font-size: var(--dynamic-font-size-lg) !important; }
+.dynamic-text-xl { font-size: var(--dynamic-font-size-xl) !important; }
+.dynamic-text-2xl { font-size: var(--dynamic-font-size-2xl) !important; }
+.dynamic-text-3xl { font-size: var(--dynamic-font-size-3xl) !important; }
+
+/* Material Design 3 Global Enhancements */
+@layer components {
+  /* Material Design 3 Interactive States */
+  .md-interactive {
+    position: relative;
+    transition: all var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard);
+  }
+
+  .md-interactive::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity var(--md-sys-motion-duration-short1) var(--md-sys-motion-easing-standard);
+    pointer-events: none;
+  }
+
+  .md-interactive:hover::before {
+    opacity: 0.08;
+  }
+
+  .md-interactive:focus-visible::before {
+    opacity: 0.12;
+  }
+
+  .md-interactive:active::before {
+    opacity: 0.16;
+  }
+
+  /* Material Design 3 Focus Ring */
+  :focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Material Design 3 Theme Transitions */
+  * {
+    transition: 
+      background-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard),
+      color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard),
+      border-color var(--md-sys-motion-duration-medium2) var(--md-sys-motion-easing-standard);
+  }
+
+  /* Character Buttons - Material Design 3 Enhancement */
+  .character-button {
+    transition: 
+      background-color var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard),
+      transform var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard),
+      box-shadow var(--md-sys-motion-duration-short2) var(--md-sys-motion-easing-standard);
+  }
+
+  .character-button:hover {
+    transform: translateY(-1px);
+  }
+
+  .character-button:active {
+    transform: translateY(0);
+    transition-duration: var(--md-sys-motion-duration-short1);
+  }
+}

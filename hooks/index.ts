@@ -4,3 +4,8 @@
 
 export { useOnClickOutside } from './useOnClickOutside';
 export { useLocalStorage } from './useLocalStorage';
+export { useFontSize } from './useFontSize';
+export { useBibleApi } from './useBibleApi';
+
+export type { FontSizeScale, FontSizeConfig } from './useFontSize';
+export type { BibleVerse, BibleApiState } from './useBibleApi';

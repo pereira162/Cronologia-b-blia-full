@@ -1,5 +1,49 @@
 # 📚 Documentação Completa da Stack - Cronologia Bíblica Interativa
 
+## 🎨 ATUALIZAÇÃO MATERIAL DESIGN 3 (2025)
+
+### ✅ Refatoração Completa Implementada
+
+**Data:** Janeiro 2025  
+**Status:** ✅ CONCLUÍDO
+
+#### 🔄 Principais Mudanças Implementadas:
+
+1. **Sistema de Temas Material Design 3**
+   - ✅ Migração completa para tokens de cor M3
+   - ✅ Apenas 2 temas: Claro e Escuro (simplificação)
+   - ✅ Compatibilidade reversa com propriedades antigas
+   - ✅ CSS custom properties para todos os tokens M3
+
+2. **Novos Componentes Material Design 3**
+   - ✅ `MaterialButton`: Botão com variantes M3 (filled, outlined, text, elevated, tonal)
+   - ✅ `BibleVerseModal`: Modal para exibir versículos bíblicos
+   - ✅ `FontSizeControl`: Painel de controle de acessibilidade
+
+3. **Hooks Customizados**
+   - ✅ `useFontSize`: Gerenciamento de tamanho de fonte com persistência
+   - ✅ `useBibleApi`: Integração com Bible API para busca de versículos
+   - ✅ `useLocalStorage`: Utilidade para persistência local
+
+4. **Funcionalidades de Acessibilidade**
+   - ✅ Controle de tamanho de fonte (4 escalas: small, medium, large, extra-large)
+   - ✅ Integração com API bíblica para visualização de versículos
+   - ✅ Referências bíblicas clicáveis em CharacterCard e EventCard
+
+5. **Refatoração da Interface Principal**
+   - ✅ App.tsx atualizado com novos componentes Material Design 3
+   - ✅ Todos os botões migrados para MaterialButton
+   - ✅ Sistema de fonte reativo e escalável
+   - ✅ Controles modernos para tema e acessibilidade
+
+#### 🛠️ Status Técnico:
+- ✅ Build funcionando sem erros
+- ✅ TypeScript sem erros de compilação
+- ✅ Todas as funcionalidades integradas
+- ✅ Documentação atualizada
+
+---
+
 ## 📋 Índice
 1. [Visão Geral do Projeto](#-visão-geral-do-projeto)
 2. [Arquitetura do Sistema](#-arquitetura-do-sistema)

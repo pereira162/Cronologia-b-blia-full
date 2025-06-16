@@ -104,7 +104,8 @@ export interface TimelineViewProps {
   globalUiScale: number;   // Escala global da UI (do slider)
   hiddenCharacterIds: string[];
   onToggleCharacterVisibility: (personId: string) => void;
-  showCharacterBarControls: boolean;
-  activePersonLifeLines: Record<string, boolean>;
+  showCharacterBarControls: boolean;  activePersonLifeLines: Record<string, boolean>;
   onTogglePersonLifeLine: (personId: string) => void;
+  onBibleReferenceClick?: (reference: string) => void; // Optional for bible verse modal
+  isYearRulerSticky?: boolean; // Optional prop for controlling year ruler stickiness from parent
 }
