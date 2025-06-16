@@ -17,7 +17,7 @@ interface MaterialButtonProps {
   iconPosition?: 'start' | 'end';
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   className?: string;
-  theme: any; // Will be properly typed when theme system is updated
+  theme?: any; // Will be properly typed when theme system is updated
   type?: 'button' | 'submit' | 'reset';
   ariaLabel?: string;
 }
@@ -37,51 +37,67 @@ export const MaterialButton: React.FC<MaterialButtonProps> = ({
 }) => {
   const { getFontSizeRem } = useFontSize();
   
-  // Get colors based on variant
+  // Default theme fallback
+  const defaultTheme = {
+    colors: {
+      primary: '#6750a4',
+      onPrimary: '#ffffff',
+      primaryContainer: '#eaddff',
+      onPrimaryContainer: '#21005e',
+      surfaceContainer: '#f3f0f4',
+      surfaceContainerHigh: '#ede6ea',
+      secondaryContainer: '#e8def8',
+      onSecondaryContainer: '#1d192b',
+      outline: '#79747e',
+    }
+  };
+  
+  const currentTheme = theme || defaultTheme;
+    // Get colors based on variant
   const getColors = () => {
     switch (variant) {
       case 'filled':
         return {
-          bg: theme.colors.primary,
-          color: theme.colors.onPrimary,
-          hoverBg: theme.colors.primaryContainer,
-          hoverColor: theme.colors.onPrimaryContainer,
+          bg: currentTheme.colors.primary,
+          color: currentTheme.colors.onPrimary,
+          hoverBg: currentTheme.colors.primaryContainer,
+          hoverColor: currentTheme.colors.onPrimaryContainer,
         };
       case 'outlined':
         return {
           bg: 'transparent',
-          color: theme.colors.primary,
-          hoverBg: theme.colors.primaryContainer,
-          hoverColor: theme.colors.onPrimaryContainer,
-          border: theme.colors.outline,
+          color: currentTheme.colors.primary,
+          hoverBg: currentTheme.colors.primaryContainer,
+          hoverColor: currentTheme.colors.onPrimaryContainer,
+          border: currentTheme.colors.outline,
         };
       case 'text':
         return {
           bg: 'transparent',
-          color: theme.colors.primary,
-          hoverBg: theme.colors.primaryContainer,
-          hoverColor: theme.colors.onPrimaryContainer,
+          color: currentTheme.colors.primary,
+          hoverBg: currentTheme.colors.primaryContainer,
+          hoverColor: currentTheme.colors.onPrimaryContainer,
         };
       case 'elevated':
         return {
-          bg: theme.colors.surfaceContainer,
-          color: theme.colors.primary,
-          hoverBg: theme.colors.surfaceContainerHigh,
-          hoverColor: theme.colors.primary,
+          bg: currentTheme.colors.surfaceContainer,
+          color: currentTheme.colors.primary,
+          hoverBg: currentTheme.colors.surfaceContainerHigh,
+          hoverColor: currentTheme.colors.primary,
         };
       case 'tonal':
         return {
-          bg: theme.colors.secondaryContainer,
-          color: theme.colors.onSecondaryContainer,
-          hoverBg: theme.colors.surfaceContainerHigh,
-          hoverColor: theme.colors.onSecondaryContainer,
+          bg: currentTheme.colors.secondaryContainer,
+          color: currentTheme.colors.onSecondaryContainer,
+          hoverBg: currentTheme.colors.surfaceContainerHigh,
+          hoverColor: currentTheme.colors.onSecondaryContainer,
         };
       default:
         return {
-          bg: theme.colors.primary,
-          color: theme.colors.onPrimary,
-          hoverBg: theme.colors.primaryContainer,
-          hoverColor: theme.colors.onPrimaryContainer,
+          bg: currentTheme.colors.primary,
+          color: currentTheme.colors.onPrimary,
+          hoverBg: currentTheme.colors.primaryContainer,
+          hoverColor: currentTheme.colors.onPrimaryContainer,
         };
     }
   };
