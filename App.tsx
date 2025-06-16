@@ -4,26 +4,32 @@
 // a visualização principal (TimelineView) e os modais de cartão.
 // 
 // ATUALIZADO: React 19 - Aproveitando refs mutáveis e otimizações de performance
+// ATUALIZADO: Material Design 3 - Novos componentes visuais e sistema de temas
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Person, BibleEvent, YearReferenceMode, EventCategory } from './types';
-import { useOnClickOutside } from './hooks';
+import { useOnClickOutside, useFontSize } from './hooks';
 import { peopleData, eventsData } from './data'; 
-import { themes } from './themes'; 
+import { useMaterialTheme } from './utils/materialThemeProvider';
 import {
-  Cog6ToothIcon,
   XMarkIcon,
   EyeIcon,
   EyeSlashIcon,
-  ChevronDownIcon as ChevronDownHeroIcon, // Alias to avoid naming conflict if any old ones remain temporarily
-  ChevronUpIcon as ChevronUpHeroIcon,     // Alias to avoid naming conflict
-  FunnelIcon,
+  ChevronDownIcon as ChevronDownHeroIcon,
+  ChevronUpIcon as ChevronUpHeroIcon,
   UsersIcon,
+  SunIcon,
+  MoonIcon,
+  LockClosedIcon,
+  LockOpenIcon,
+  Bars3Icon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import TimelineView from './components/TimelineView';
 import CharacterCard from './components/CharacterCard';
 import EventCard from './components/EventCard';
-import { FONT_SIZE_CLASSES, Z_INDICES, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE, MIN_GLOBAL_UI_SCALE, MAX_GLOBAL_UI_SCALE } from './stylingConstants';
+import { MaterialButton, FontSizeControl, BibleVerseModal } from './components';
+import { Z_INDICES, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE, MIN_GLOBAL_UI_SCALE, MAX_GLOBAL_UI_SCALE } from './stylingConstants';
 
 // --- Ícones Helper --- (Old icon components removed)
 
@@ -42,11 +48,33 @@ const mapScaleToSlider = (scaleValue: number, minScale: number, maxScale: number
 };
 
 const App: React.FC = () => {
+  // Material Design 3 theme management
+  const { effectiveTheme, toggleTheme } = useMaterialTheme();
+  // Create a theme object for legacy compatibility
+  const currentTheme = {
+    id: effectiveTheme,
+    name: effectiveTheme === 'dark' ? 'Escuro Moderno (Padrão)' : 'Claro Clássico',
+    colors: {      // These will be read from CSS custom properties by Material components
+      personBarPalette: [
+        'var(--person-bar-color-1)',    // Blue with good contrast
+        'var(--person-bar-color-2)',    // Dark Blue
+        'var(--person-bar-color-3)',    // Dark Green  
+        'var(--person-bar-color-4)',    // Dark Red
+        'var(--person-bar-color-5)',    // Dark Orange
+        'var(--person-bar-color-6)',    // Dark Purple
+      ]
+    }
+  };
+  
+  // Font size control
+  const { fontSize } = useFontSize();
+
   const [yearReferenceMode, setYearReferenceMode] = useState<YearReferenceMode>('AC');
-  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<BibleEvent | null>(null);
-  const [currentThemeId, setCurrentThemeId] = useState<string>(themes[0].id);  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
-  const themeSelectorRef = useOnClickOutside<HTMLDivElement>(() => setIsThemeSelectorOpen(false));
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);  const [selectedEvent, setSelectedEvent] = useState<BibleEvent | null>(null);
+  const [isFontSizeControlOpen, setIsFontSizeControlOpen] = useState(false);
+  const [isYearRulerSticky, setIsYearRulerSticky] = useState(true);
+  const [bibleVerseModal, setBibleVerseModal] = useState<{ isOpen: boolean; reference: string }>({ isOpen: false, reference: '' });
+  const fontSizeControlRef = useOnClickOutside<HTMLDivElement>(() => setIsFontSizeControlOpen(false));
   
   const initialSelectedEventIds = useMemo(() => 
     eventsData.filter(event => event.category === 'principal').map(event => event.id)
@@ -72,10 +100,8 @@ const App: React.FC = () => {
 
   const [showCharacterBarControls, setShowCharacterBarControls] = useState(true);
   const [activePersonLifeLines, setActivePersonLifeLines] = useState<Record<string, boolean>>({});
-  
-  const [showControlsHeader, setShowControlsHeader] = useState(true);
-  const controlsHeaderRef = useRef<HTMLElement>(null);  const [controlsHeaderHeight, setControlsHeaderHeight] = useState(0);
-
+    const [showControlsHeader, setShowControlsHeader] = useState(true);
+  const controlsHeaderRef = useRef<HTMLElement>(null);
   // React 19: Otimizando funções com useCallback para melhor performance
   const toggleCharacterVisibility = useCallback((personId: string) => {
     setHiddenCharacterIds((prevHiddenIds: string[]) =>
@@ -84,69 +110,12 @@ const App: React.FC = () => {
         : [...prevHiddenIds, personId]
     );
   }, []);
-  
-  const togglePersonLifeLine = useCallback((personId: string) => {
+    const togglePersonLifeLine = useCallback((personId: string) => {
     setActivePersonLifeLines((prev: Record<string, boolean>) => ({ 
       ...prev, 
       [personId]: !prev[personId] 
     }));
   }, []);
-
-  useEffect(() => {
-    const selectedTheme = themes.find(t => t.id === currentThemeId);
-    if (selectedTheme) {
-      const root = document.documentElement; 
-      root.style.setProperty('--app-bg-color', selectedTheme.colors.appBg);
-      root.style.setProperty('--header-bg-color', selectedTheme.colors.headerBg);
-      root.style.setProperty('--timeline-gradient-start', selectedTheme.colors.timelineGradientStart);
-      root.style.setProperty('--timeline-gradient-end', selectedTheme.colors.timelineGradientEnd);
-      root.style.setProperty('--text-color', selectedTheme.colors.textColor);
-      root.style.setProperty('--accent-color', selectedTheme.colors.accentColor);
-      root.style.setProperty('--button-bg-color', selectedTheme.colors.buttonBg);
-      root.style.setProperty('--button-hover-bg-color', selectedTheme.colors.buttonHoverBg);
-      root.style.setProperty('--card-bg-color', selectedTheme.colors.cardBg);
-      root.style.setProperty('--card-header-color', selectedTheme.colors.cardHeaderColor);
-      root.style.setProperty('--border-color', selectedTheme.colors.borderColor);
-      
-      const isDarkTheme = ['modern-dark', 'oceanic-blaze', 'sunset-glow'].includes(selectedTheme.id); 
-      root.style.setProperty('--scrollbar-track-color', isDarkTheme ? '#1f2937' : '#e5e7eb'); 
-      root.style.setProperty('--scrollbar-thumb-color', selectedTheme.colors.accentColor); 
-      root.style.setProperty('--scrollbar-thumb-hover-color', selectedTheme.colors.timelineGradientEnd); 
-
-      root.style.setProperty('--timeline-year-marker-major-color', selectedTheme.colors.textColor);
-      root.style.setProperty('--timeline-year-marker-minor-color', selectedTheme.colors.accentColor);
-      root.style.setProperty('--timeline-grid-line-color', selectedTheme.id.includes('light') || selectedTheme.id.includes('spring') ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)');
-      root.style.setProperty('--person-line-active-color', selectedTheme.id.includes('light') || selectedTheme.id.includes('spring') ? '#ca8a04' : '#facc15');
-      root.style.setProperty('--event-line-color', selectedTheme.id.includes('light') || selectedTheme.id.includes('spring') ? '#db2777' : '#f472b6');
-    }
-  }, [currentThemeId]);
-
-  useEffect(() => {
-    const calculateHeight = () => {
-      if (showControlsHeader && controlsHeaderRef.current) {
-        setControlsHeaderHeight(controlsHeaderRef.current.offsetHeight);
-      } else {
-        setControlsHeaderHeight(0);
-      }
-    };
-    
-    const observer = new ResizeObserver(calculateHeight);
-    if (controlsHeaderRef.current) {
-      observer.observe(controlsHeaderRef.current);
-    }
-    
-    // Initial calculation
-    calculateHeight();
-    
-    window.addEventListener('resize', calculateHeight);
-
-    return () => {
-      if (controlsHeaderRef.current) {
-        observer.unobserve(controlsHeaderRef.current);
-      }
-      window.removeEventListener('resize', calculateHeight);
-    };
-  }, [showControlsHeader, globalUiScale, isThemeSelectorOpen, isEventSelectorOpen, isPersonVisibilityPanelOpen]);
 
   const handleSelectPerson = (person: Person) => {
     setSelectedPerson(person);
@@ -161,8 +130,7 @@ const App: React.FC = () => {
   const closeCards = () => {
     setSelectedPerson(null);
     setSelectedEvent(null);
-  };
-  // React 19: Otimizando handlers com useCallback e tipagem explícita
+  };  // React 19: Otimizando funções com useCallback para melhor performance
   const toggleYearReferenceMode = useCallback(() => {
     setYearReferenceMode((prevMode: YearReferenceMode) => 
       prevMode === 'AC' ? 'Relative' : 'AC'
@@ -176,129 +144,167 @@ const App: React.FC = () => {
         : [...prevSelectedIds, eventId]
     );
   }, []);
+
+  const handleBibleReferenceClick = useCallback((reference: string) => {
+    setBibleVerseModal({ isOpen: true, reference });
+  }, []);
+
+  const closeBibleVerseModal = useCallback(() => {
+    setBibleVerseModal({ isOpen: false, reference: '' });
+  }, []);
   
   const eventCategories: EventCategory[] = ['principal', 'secundario', 'menor'];
   const groupedEvents = useMemo(() => {
     return eventCategories.map(category => ({
       category,
       events: eventsData.filter(event => event.category === category)
-    }));
-  }, []);
-
-  const currentTheme = themes.find(t => t.id === currentThemeId) || themes[0];
-
-  // Helper to apply globalUiScale to Tailwind font size classes
-  const getScaledFontSize = (tailwindClass: keyof typeof FONT_SIZE_CLASSES) => {
-    const baseSizesRem = {
-      xs: 0.75, sm: 0.875, base: 1, lg: 1.125, xl: 1.25, '2xl': 1.5, '3xl': 1.875
+    }));  }, []);
+    // Helper to get scaled font sizes based on the current font size config
+  const getScaledFontSize = (scale: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl') => {
+    // Verificação de segurança para evitar erro se fontSize for undefined
+    if (!fontSize || !fontSize.baseSize || !fontSize.multiplier) {
+      // Retorna um valor padrão se fontSize não estiver disponível
+      const defaultSizes = {
+        xs: '12px',
+        sm: '14px', 
+        base: '16px',
+        lg: '18px',
+        xl: '20px',
+        '2xl': '24px',
+        '3xl': '30px'
+      };
+      return defaultSizes[scale];
+    }
+    
+    const scaleMap = {
+      xs: 0.75,
+      sm: 0.875,
+      base: 1,
+      lg: 1.125,
+      xl: 1.25,
+      '2xl': 1.5,
+      '3xl': 1.875
     };
-    // Ensure the calculation results in a valid CSS string for font-size
-    const scaledValue = (baseSizesRem[tailwindClass] * globalUiScale).toFixed(3);
-    return `${scaledValue}rem`;
+    return `${fontSize.baseSize * scaleMap[scale] * fontSize.multiplier}px`;
   };
 
 
   return (
     <div className="flex flex-col h-screen bg-theme-app-bg text-theme-text">
-      {/* Top bar with Title and Toggle Configs Button */}
-      <div 
-        className="p-3 md:p-4 shadow-md bg-theme-header-bg"
-        style={{ zIndex: Z_INDICES.controlsHeader + 1 }} // Ensure title bar is above controls header
-      >
-        <div className="container mx-auto flex justify-between items-center">
-           <h1 
-            style={{ fontSize: getScaledFontSize('2xl') }}
-            className="font-bold tracking-tight text-theme-accent" // Removed text-2xl md:text-3xl to rely on getScaledFontSize
-           >
-            Gênesis Interativo
-           </h1>
-          <button
-            onClick={() => setShowControlsHeader(!showControlsHeader)}
-            className={`p-2 rounded-md font-semibold flex items-center transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text`}
-            style={{ fontSize: getScaledFontSize('sm')}}
-            title={showControlsHeader ? "Ocultar Configurações" : "Mostrar Configurações"}
-          >
-            {showControlsHeader ? <XMarkIcon className="w-6 h-6" /> : <Cog6ToothIcon className="w-6 h-6" />}
-            <span className="ml-2 hidden sm:inline">{showControlsHeader ? "Ocultar" : "Configurações"}</span>
-          </button>
+      {/* Top bar with Title and Control Buttons */}
+      <div className="shadow-sm border-b bg-theme-header-bg border-theme-border" style={{ zIndex: Z_INDICES.topHeader }}>
+        <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
+          <div className="flex justify-between items-center gap-2">
+            {/* Title */}
+            <h1 className="dynamic-text-lg md:dynamic-text-xl font-md-display-medium text-theme-header-text truncate">
+              Cronologia Bíblica Interativa
+            </h1>
+            
+            {/* Control Buttons */}
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              {/* Font Size Control */}
+              <div className="relative" ref={fontSizeControlRef}>
+                <MaterialButton
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setIsFontSizeControlOpen(!isFontSizeControlOpen)}
+                  theme={currentTheme}
+                  ariaLabel="Ajustar tamanho da fonte"
+                >
+                  Aa
+                </MaterialButton>
+                {isFontSizeControlOpen && (
+                  <div className="absolute right-0 mt-2 w-48" style={{ zIndex: Z_INDICES.dropdowns }}>
+                    <FontSizeControl theme={currentTheme} />
+                  </div>
+                )}
+              </div>              {/* Theme Toggle Button */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={toggleTheme}
+                icon={effectiveTheme === 'dark' ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
+                theme={currentTheme}
+                ariaLabel={effectiveTheme === 'dark' ? "Trocar para Claro Clássico" : "Trocar para Escuro Moderno (Padrão)"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>
+
+              {/* Show/Hide Character Bar Controls */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={() => setShowCharacterBarControls(!showCharacterBarControls)}
+                icon={showCharacterBarControls ? <EyeIcon className="w-4 h-4" /> : <EyeSlashIcon className="w-4 h-4" />}
+                theme={currentTheme}
+                ariaLabel={showCharacterBarControls ? "Ocultar informações especiais" : "Mostrar informações especiais"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>
+                  {/* Stick Year Ruler Button */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  console.log('Botão régua clicado! Estado atual:', isYearRulerSticky);
+                  setIsYearRulerSticky(!isYearRulerSticky);
+                  console.log('Novo estado será:', !isYearRulerSticky);
+                }}
+                icon={isYearRulerSticky ? <LockClosedIcon className="w-4 h-4" /> : <LockOpenIcon className="w-4 h-4" />}
+                theme={currentTheme}
+                ariaLabel={isYearRulerSticky ? "Desafixar Régua de Anos" : "Fixar Régua de Anos"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>
+              
+              {/* Toggle Configurations Button */}
+              <MaterialButton
+                variant="filled"
+                size="medium"
+                onClick={() => setShowControlsHeader(!showControlsHeader)}
+                icon={showControlsHeader ? <XMarkIcon className="w-5 h-5" /> : <Bars3Icon className="w-5 h-5" />}
+                theme={currentTheme}
+                ariaLabel={showControlsHeader ? "Ocultar Configurações" : "Mostrar Configurações"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Collapsible Controls Header */}
       <header 
         ref={controlsHeaderRef}
-        className={`shadow-lg p-3 md:p-4 transition-all duration-300 ease-in-out bg-theme-header-bg ${showControlsHeader ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 p-0 md:p-0 pointer-events-none'}`} 
+        className={`shadow-lg transition-all duration-300 ease-in-out bg-theme-header-bg ${showControlsHeader ? 'max-h-[500px] opacity-100 px-3 md:px-4 py-2 md:py-3' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`} 
         style={{ zIndex: Z_INDICES.controlsHeader }}
-      >
-        <div className="container mx-auto">
+      >        <div className="container mx-auto">
           <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
             <div className="flex space-x-1 md:space-x-2 items-center">
-               <button
-                onClick={() => setShowCharacterBarControls(!showCharacterBarControls)}
-                className={`p-2 rounded-md font-semibold flex items-center transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text`}
-                style={{ fontSize: getScaledFontSize('sm')}}
-                title={showCharacterBarControls ? "Ocultar controles nas barras" : "Mostrar controles nas barras"}
-              >
-                {showCharacterBarControls ? <EyeIcon className="w-5 h-5" /> : <EyeSlashIcon className="w-5 h-5" />}
-                <span className="ml-1 hidden md:inline" style={{fontSize: getScaledFontSize('xs')}}>Contr. Barras</span>
-              </button>
-              <div className="relative" ref={themeSelectorRef}>
-                <button
-                  onClick={() => setIsThemeSelectorOpen(!isThemeSelectorOpen)}
-                  className={`p-2 rounded-md font-semibold flex items-center transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text`}
-                  style={{ fontSize: getScaledFontSize('sm')}}
-                  aria-expanded={isThemeSelectorOpen}
-                  title="Selecionar Tema"
-                >
-                  <div className="flex items-center space-x-1 mr-1">
-                    {currentTheme.colors.previewColors.map((color, idx) => (
-                      <div key={idx} className="w-3 h-3 rounded-sm border border-theme-border" style={{ backgroundColor: color, transform: `scale(${globalUiScale})` }}></div>
-                    ))}
-                  </div>
-                  {isThemeSelectorOpen ? <ChevronUpHeroIcon className="w-4 h-4 ml-1" /> : <ChevronDownHeroIcon className="w-4 h-4 ml-1" />}
-                </button>
-                {isThemeSelectorOpen && (
-                  <div className="absolute right-0 mt-2 w-64 border rounded-md shadow-lg p-2 max-h-80 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns }}>
-                    {themes.map(theme => (
-                      <button
-                        key={theme.id}
-                        onClick={() => { setCurrentThemeId(theme.id); setIsThemeSelectorOpen(false); }}
-                        className={`block w-full text-left px-3 py-2 rounded text-theme-text ${currentThemeId === theme.id ? 'font-semibold bg-theme-button-hover-bg' : 'bg-transparent hover:bg-theme-button-bg'}`}
-                        style={{ 
-                          fontSize: getScaledFontSize('sm')
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span>{theme.name}</span>
-                          <div className="flex space-x-1">
-                            {theme.colors.previewColors.map((color, idx) => (
-                              <div key={idx} className="w-3 h-3 rounded-sm border border-theme-border" style={{ backgroundColor: color }}></div>
-                            ))}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
+              {/* Year Reference Mode Toggle */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
                 onClick={toggleYearReferenceMode}
-                className={`px-3 py-2 rounded-md font-semibold flex items-center transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text`}
-                style={{ fontSize: getScaledFontSize('sm')}}
+                theme={currentTheme}
+                ariaLabel="Alternar modo de referência de anos"
               >
-                Anos: {yearReferenceMode === 'AC' ? 'aC' : 'Relativo'}
-              </button>
+                {yearReferenceMode === 'AC' ? 'aC' : 'Relativo'}
+              </MaterialButton>
+
+              {/* Event Filter */}
               <div className="relative" ref={eventSelectorRef}>
-                <button
+                <MaterialButton
+                  variant="outlined"
+                  size="small"
                   onClick={() => setIsEventSelectorOpen(!isEventSelectorOpen)}
-                  className={`p-2 rounded-md font-semibold flex items-center transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text`}
-                  style={{ fontSize: getScaledFontSize('sm')}}
-                  aria-expanded={isEventSelectorOpen}
-                  title="Filtrar Eventos"
+                  icon={<CalendarDaysIcon className="w-5 h-5" />}
+                  iconPosition="start"
+                  theme={currentTheme}
+                  ariaLabel="Filtrar Eventos"
                 >
-                  <FunnelIcon className="w-6 h-6" />
                   {isEventSelectorOpen ? <ChevronUpHeroIcon className="w-4 h-4 ml-1" /> : <ChevronDownHeroIcon className="w-4 h-4 ml-1" />}
-                </button>
+                </MaterialButton>
                 {isEventSelectorOpen && (
                   <div className="absolute right-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Selecionar Eventos</h3>
@@ -321,28 +327,31 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </div>
+              </div>              {/* Person Visibility Panel */}
               <div className="relative" ref={personVisibilityPanelRef}>
-                <button
+                <MaterialButton
+                  variant="outlined"
+                  size="small"
                   onClick={() => setIsPersonVisibilityPanelOpen(!isPersonVisibilityPanelOpen)}
-                  className={`p-2 rounded-md font-semibold flex items-center transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text`}
-                  style={{ fontSize: getScaledFontSize('sm')}}
-                  aria-expanded={isPersonVisibilityPanelOpen}
-                  title="Visibilidade de Personagens"
+                  icon={<UsersIcon className="w-5 h-5" />}
+                  iconPosition="start"
+                  theme={currentTheme}
+                  ariaLabel="Visibilidade de Personagens"
                 >
-                  <UsersIcon className="w-6 h-6" />
                   {isPersonVisibilityPanelOpen ? <ChevronUpHeroIcon className="w-4 h-4 ml-1" /> : <ChevronDownHeroIcon className="w-4 h-4 ml-1" />}
-                </button>
-                {isPersonVisibilityPanelOpen && (
+                </MaterialButton>                {isPersonVisibilityPanelOpen && (
                   <div className="absolute right-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Mostrar/Ocultar Personagens</h3>
-                    <button 
-                        onClick={() => setHiddenCharacterIds([])}
-                        className="w-full mb-3 px-3 py-1.5 rounded-md font-semibold transition-colors duration-150 bg-theme-button-bg hover:bg-theme-button-hover-bg text-theme-text"
-                        style={{ fontSize: getScaledFontSize('sm')}}
+                    <MaterialButton
+                      variant="filled"
+                      size="small"
+                      onClick={() => setHiddenCharacterIds([])}
+                      theme={currentTheme}
+                      className="w-full mb-3"
+                      ariaLabel="Mostrar todos os personagens"
                     >
-                        Mostrar Todos os Personagens
-                    </button>
+                      Mostrar Todos os Personagens
+                    </MaterialButton>
                     {peopleData.map(person => (
                       <label key={person.id} className="flex items-center space-x-2 p-1 hover:opacity-75 rounded cursor-pointer text-theme-text">
                         <input
@@ -399,13 +408,10 @@ const App: React.FC = () => {
             </div>
           </div> 
         </div> 
-      </header>
-
-      <main 
+      </header>      <main 
         className="flex-grow overflow-hidden" 
-        style={{ paddingTop: `${controlsHeaderHeight}px`, position: 'relative' }} // Added position:relative for child z-indexing context
-      >
-        <TimelineView 
+        style={{ position: 'relative' }}
+      ><TimelineView 
           people={peopleData}
           events={eventsData.filter(event => selectedEventIds.includes(event.id))}
           onSelectPerson={handleSelectPerson}
@@ -420,11 +426,27 @@ const App: React.FC = () => {
           showCharacterBarControls={showCharacterBarControls}
           activePersonLifeLines={activePersonLifeLines}
           onTogglePersonLifeLine={togglePersonLifeLine}
+          onBibleReferenceClick={handleBibleReferenceClick}
+          isYearRulerSticky={isYearRulerSticky}
         />
-      </main>
+      </main>      <CharacterCard 
+        person={selectedPerson} 
+        onClose={closeCards} 
+        onBibleReferenceClick={handleBibleReferenceClick}
+      />      <EventCard 
+        event={selectedEvent} 
+        onClose={closeCards} 
+        onSelectPerson={handleSelectPerson}
+        onBibleReferenceClick={handleBibleReferenceClick}
+      />
 
-      <CharacterCard person={selectedPerson} onClose={closeCards} />
-      <EventCard event={selectedEvent} onClose={closeCards} onSelectPerson={handleSelectPerson} />
+      {/* Bible Verse Modal */}
+      <BibleVerseModal 
+        isOpen={bibleVerseModal.isOpen}
+        reference={bibleVerseModal.reference}
+        onClose={closeBibleVerseModal}
+        theme={currentTheme}
+      />
 
       <footer className={`text-center p-3 bg-theme-header-bg text-theme-accent`} style={{ fontSize: getScaledFontSize('xs') }}>
         Exploração Visual das Narrativas Fundacionais do Livro de Gênesis.

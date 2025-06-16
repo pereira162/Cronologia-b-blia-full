@@ -177,12 +177,12 @@ const TimelineView: React.FC<TimelineViewProps> = ({  people: allPeople, events,
 
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const rulerContentRef = useRef<HTMLDivElement>(null);  // Robust scroll synchronization system
+  const rulerContentRef = useRef<HTMLDivElement>(null);  // Robust scroll synchronization system - always syncs ruler when visible
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     const rulerContainer = rulerContentRef.current;
     
-    if (!scrollContainer) return;
+    if (!scrollContainer || !rulerContainer) return;
     
     let isScrolling = false;
     
@@ -199,8 +199,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({  people: allPeople, events,
         scrollContainer.scrollLeft = sourceScrollLeft;
       }
       
-      // Only sync ruler if it's visible (sticky)
-      if (isYearRulerSticky && rulerContainer && rulerContainer.scrollLeft !== sourceScrollLeft) {
+      // Always sync ruler since it's always visible now
+      if (rulerContainer && rulerContainer.scrollLeft !== sourceScrollLeft) {
         rulerContainer.scrollLeft = sourceScrollLeft;
       }
       
@@ -214,24 +214,18 @@ const TimelineView: React.FC<TimelineViewProps> = ({  people: allPeople, events,
     };
     
     const handleRulerScroll = () => {
-      if (isYearRulerSticky) {
-        syncScroll(rulerContainer?.scrollLeft || 0);
-      }
+      syncScroll(rulerContainer?.scrollLeft || 0);
     };
     
     // Add scroll listeners with passive: true for better performance
     scrollContainer.addEventListener('scroll', handleMainScroll, { passive: true });
-    if (isYearRulerSticky && rulerContainer) {
-      rulerContainer.addEventListener('scroll', handleRulerScroll, { passive: true });
-    }
+    rulerContainer.addEventListener('scroll', handleRulerScroll, { passive: true });
     
     return () => {
       scrollContainer.removeEventListener('scroll', handleMainScroll);
-      if (isYearRulerSticky && rulerContainer) {
-        rulerContainer.removeEventListener('scroll', handleRulerScroll);
-      }
+      rulerContainer.removeEventListener('scroll', handleRulerScroll);
     };
-  }, [isYearRulerSticky]);  // Calculate floating name position
+  }, []);// Calculate floating name position
   const getFloatingNamePosition = (personX: number, personWidth: number, nameWidth: number = 150) => {
     const visibleStart = scrollPosition;
     
@@ -886,19 +880,17 @@ const processedEventsData = useMemo(() => {
         className="flex-grow h-full relative overflow-hidden" 
         role="region" 
         aria-label="Linha do Tempo Genealógica"
-      >
-          {/* Régua cronológica - agora sempre sincronizada */}
-        {isYearRulerSticky && (
-          <div 
-            className="w-full overflow-x-auto overflow-y-hidden"
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: Z_INDICES.yearHeader,
-              height: `${SCALED_YEAR_HEADER_HEIGHT}px`
-            }}
-            ref={rulerContentRef}
-          >
+      >          {/* Régua cronológica - sempre visível, sticky ou não */}
+        <div 
+          className="w-full overflow-x-auto overflow-y-hidden"
+          style={{
+            position: isYearRulerSticky ? 'sticky' : 'relative',
+            top: isYearRulerSticky ? 0 : 'auto',
+            zIndex: Z_INDICES.yearHeader,
+            height: `${SCALED_YEAR_HEADER_HEIGHT}px`
+          }}
+          ref={rulerContentRef}
+        >
           <div
             style={{ 
               height: `${SCALED_YEAR_HEADER_HEIGHT}px`, 
@@ -1029,10 +1021,8 @@ const processedEventsData = useMemo(() => {
                   </div>
                 );
               });
-            })()}
-          </div>
+            })()}          </div>
         </div>
-        )}
         
         {/* Conteúdo principal - agora sempre sincronizado */}
         <div 
