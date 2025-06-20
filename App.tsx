@@ -6,8 +6,8 @@
 // ATUALIZADO: React 19 - Aproveitando refs mutáveis e otimizações de performance
 // ATUALIZADO: Material Design 3 - Novos componentes visuais e sistema de temas
 
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Person, BibleEvent, YearReferenceMode, EventCategory } from './types';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { Person, BibleEvent, YearReferenceMode, EventCategory, EventCardPosition, TimeComparisonState, TimeComparisonItem, TimeComparisonResult } from './types';
 import { useOnClickOutside, useFontSize } from './hooks';
 import { peopleData, eventsData } from './data'; 
 import { useMaterialTheme } from './utils/materialThemeProvider';
@@ -16,19 +16,21 @@ import {
   EyeIcon,
   EyeSlashIcon,
   ChevronDownIcon as ChevronDownHeroIcon,
-  ChevronUpIcon as ChevronUpHeroIcon,
-  UsersIcon,
+  ChevronUpIcon as ChevronUpHeroIcon,  UsersIcon,
   SunIcon,
   MoonIcon,
   LockClosedIcon,
   LockOpenIcon,
-  Bars3Icon,
-  CalendarDaysIcon,
+  Bars3Icon,  CalendarDaysIcon,
+  ArrowsPointingOutIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline';
 import TimelineView from './components/TimelineView';
 import CharacterCard from './components/CharacterCard';
 import EventCard from './components/EventCard';
-import { MaterialButton, FontSizeControl, BibleVerseModal } from './components';
+import { MaterialButton, FontSizeControl, BibleVerseModal, ConsoleMonitor, ErrorBoundary, ErrorDisplay } from './components';
+import { useBibleDigitalApi } from './hooks/useBibleDigitalApi';
+import { useDebugLogger } from './hooks/useDebugLogger';
 import { Z_INDICES, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE, MIN_GLOBAL_UI_SCALE, MAX_GLOBAL_UI_SCALE } from './stylingConstants';
 
 // --- Ícones Helper --- (Old icon components removed)
@@ -72,9 +74,66 @@ const App: React.FC = () => {
   const [yearReferenceMode, setYearReferenceMode] = useState<YearReferenceMode>('AC');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);  const [selectedEvent, setSelectedEvent] = useState<BibleEvent | null>(null);
   const [isFontSizeControlOpen, setIsFontSizeControlOpen] = useState(false);
-  const [isYearRulerSticky, setIsYearRulerSticky] = useState(true);
-  const [bibleVerseModal, setBibleVerseModal] = useState<{ isOpen: boolean; reference: string }>({ isOpen: false, reference: '' });
+  const [isYearRulerSticky, setIsYearRulerSticky] = useState(true);  const [bibleVerseModal, setBibleVerseModal] = useState<{ isOpen: boolean; reference: string }>({ isOpen: false, reference: '' });  const [eventCardPositions, setEventCardPositions] = useState<Record<string, EventCardPosition>>({});  const [selectedPersonRange, setSelectedPersonRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isConsoleMonitorVisible, setIsConsoleMonitorVisible] = useState(false);
+  const [errorCount, setErrorCount] = useState(0);
+    // Hook para a nova API da Bíblia Digital
+  const { createUser: createBibleUser, loading: bibleLoading } = useBibleDigitalApi();
+    // Sistema de debug logging
+  const debugLogger = useDebugLogger();
+  
+  const [timeComparison, setTimeComparison] = useState<TimeComparisonState>({ item1: null, item2: null, isActive: false });
+
+  // Funções para o sistema de monitoramento de erros
+  const toggleConsoleMonitor = useCallback(() => {
+    setIsConsoleMonitorVisible(!isConsoleMonitorVisible);
+  }, [isConsoleMonitorVisible]);
+  const handleErrorCountChange = useCallback((count: number) => {
+    setErrorCount(count);
+  }, []);
+  // Função para testar a criação de usuário na API da Bíblia
+  const handleCreateBibleUser = useCallback(async () => {
+    try {
+      await createBibleUser();
+      debugLogger.log('info', 'Usuário da API da Bíblia criado com sucesso');
+    } catch (err) {
+      debugLogger.error('Erro ao criar usuário da API da Bíblia', err instanceof Error ? err : new Error(String(err)));
+    }
+  }, [createBibleUser, debugLogger]);
+
+  // Log inicial quando o app carrega
+  useEffect(() => {
+    console.log('🚀 App carregado - Sistema de monitoramento de console ativo');
+    debugLogger.log('info', 'App inicializado com sistema de debugging');
+  }, [debugLogger]);
   const fontSizeControlRef = useOnClickOutside<HTMLDivElement>(() => setIsFontSizeControlOpen(false));
+
+  // Fullscreen toggle function
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch(err => {
+        console.error('Error attempting to enable fullscreen:', err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      }).catch(err => {
+        console.error('Error attempting to exit fullscreen:', err);
+      });
+    }
+  }, []);
+
+  // Listen for fullscreen changes (e.g., pressing ESC)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
   
   const initialSelectedEventIds = useMemo(() => 
     eventsData.filter(event => event.category === 'principal').map(event => event.id)
@@ -100,8 +159,51 @@ const App: React.FC = () => {
 
   const [showCharacterBarControls, setShowCharacterBarControls] = useState(true);
   const [activePersonLifeLines, setActivePersonLifeLines] = useState<Record<string, boolean>>({});
-    const [showControlsHeader, setShowControlsHeader] = useState(true);
+  const [showControlsHeader, setShowControlsHeader] = useState(false);
   const controlsHeaderRef = useRef<HTMLElement>(null);
+
+  // Time comparison utility functions
+  const calculateTimeDifference = useCallback((item1: TimeComparisonItem, item2: TimeComparisonItem): TimeComparisonResult | null => {
+    if (!item1.year || !item2.year) {
+      return null;
+    }
+
+    const yearDifference = item2.year - item1.year;
+    const absoluteDifference = Math.abs(yearDifference);
+
+    let description = '';
+    if (yearDifference > 0) {
+      description = `${item2.name} aconteceu ${absoluteDifference} anos depois de ${item1.name}`;
+    } else if (yearDifference < 0) {
+      description = `${item2.name} aconteceu ${absoluteDifference} anos antes de ${item1.name}`;
+    } else {
+      description = `${item1.name} e ${item2.name} aconteceram no mesmo ano`;
+    }
+
+    return {
+      yearDifference,
+      absoluteDifference,
+      description
+    };
+  }, []);
+
+  const handleTimeComparisonItemSelect = useCallback((item: TimeComparisonItem) => {
+    setTimeComparison(prev => {
+      if (!prev.item1) {
+        return { ...prev, item1: item, isActive: true };
+      } else if (!prev.item2) {
+        return { ...prev, item2: item };
+      } else {
+        // If both items are selected, replace the first one
+        return { ...prev, item1: item, item2: null };
+      }
+    });
+  }, []);
+
+  const clearTimeComparison = useCallback(() => {
+    setTimeComparison({ item1: null, item2: null, isActive: false });
+  }, []);
+
   // React 19: Otimizando funções com useCallback para melhor performance
   const toggleCharacterVisibility = useCallback((personId: string) => {
     setHiddenCharacterIds((prevHiddenIds: string[]) =>
@@ -144,14 +246,35 @@ const App: React.FC = () => {
         : [...prevSelectedIds, eventId]
     );
   }, []);
-
   const handleBibleReferenceClick = useCallback((reference: string) => {
     setBibleVerseModal({ isOpen: true, reference });
   }, []);
 
+  const handleEventCardPositionChange = useCallback((eventId: string, position: Partial<EventCardPosition>) => {
+    setEventCardPositions((prev: Record<string, EventCardPosition>) => ({
+      ...prev,
+      [eventId]: {
+        ...prev[eventId],
+        eventId,
+        x: 0, // Default x position
+        y: 100, // Default y position
+        alignment: 'center', // Default alignment
+        isDragging: false,
+        ...position
+      }
+    }));
+  }, []);
   const closeBibleVerseModal = useCallback(() => {
     setBibleVerseModal({ isOpen: false, reference: '' });
   }, []);
+  
+  // Helper variables for person range selection
+  const allPeople = peopleData;
+  const sortedVisiblePeople = useMemo(() => {
+    return allPeople
+      .filter(person => !hiddenCharacterIds.includes(person.id))
+      .sort((a, b) => (a.birthYear || 0) - (b.birthYear || 0));
+  }, [allPeople, hiddenCharacterIds]);
   
   const eventCategories: EventCategory[] = ['principal', 'secundario', 'menor'];
   const groupedEvents = useMemo(() => {
@@ -188,9 +311,9 @@ const App: React.FC = () => {
     return `${fontSize.baseSize * scaleMap[scale] * fontSize.multiplier}px`;
   };
 
-
   return (
-    <div className="flex flex-col h-screen bg-theme-app-bg text-theme-text">
+    <ErrorBoundary>
+      <div className="flex flex-col h-screen bg-theme-app-bg text-theme-text">
       {/* Top bar with Title and Control Buttons */}
       <div className="shadow-sm border-b bg-theme-header-bg border-theme-border" style={{ zIndex: Z_INDICES.topHeader }}>
         <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
@@ -212,9 +335,8 @@ const App: React.FC = () => {
                   ariaLabel="Ajustar tamanho da fonte"
                 >
                   Aa
-                </MaterialButton>
-                {isFontSizeControlOpen && (
-                  <div className="absolute right-0 mt-2 w-48" style={{ zIndex: Z_INDICES.dropdowns }}>
+                </MaterialButton>                {isFontSizeControlOpen && (
+                  <div className="absolute right-0 mt-2 w-48" style={{ zIndex: Z_INDICES.fontSizeControl }}>
                     <FontSizeControl theme={currentTheme} />
                   </div>
                 )}
@@ -240,8 +362,7 @@ const App: React.FC = () => {
                 ariaLabel={showCharacterBarControls ? "Ocultar informações especiais" : "Mostrar informações especiais"}
               >
                 {/* Icon only button */}
-              </MaterialButton>
-                  {/* Stick Year Ruler Button */}
+              </MaterialButton>              {/* Stick Year Ruler Button */}
               <MaterialButton
                 variant="outlined"
                 size="small"
@@ -256,8 +377,31 @@ const App: React.FC = () => {
               >
                 {/* Icon only button */}
               </MaterialButton>
-              
-              {/* Toggle Configurations Button */}
+
+              {/* Time Comparison Button */}
+              <MaterialButton
+                variant={timeComparison.isActive ? "filled" : "outlined"}
+                size="small"
+                onClick={() => timeComparison.isActive ? clearTimeComparison() : setTimeComparison(prev => ({ ...prev, isActive: true }))}
+                icon={<CalculatorIcon className="w-4 h-4" />}
+                theme={currentTheme}
+                ariaLabel={timeComparison.isActive ? "Desativar comparação de tempo" : "Ativar comparação de tempo"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>
+
+              {/* Fullscreen Button */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={toggleFullscreen}
+                icon={<ArrowsPointingOutIcon className="w-4 h-4" />}
+                theme={currentTheme}
+                ariaLabel={isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>
+                {/* Toggle Configurations Button */}
               <MaterialButton
                 variant="filled"
                 size="medium"
@@ -267,6 +411,48 @@ const App: React.FC = () => {
                 ariaLabel={showControlsHeader ? "Ocultar Configurações" : "Mostrar Configurações"}
               >
                 {/* Icon only button */}
+              </MaterialButton>
+
+              {/* Botão Console Monitor com Badge de Erro */}
+              <div className="relative">
+                <MaterialButton
+                  variant={isConsoleMonitorVisible ? "filled" : "outlined"}
+                  size="medium"
+                  onClick={toggleConsoleMonitor}
+                  theme={currentTheme}
+                  ariaLabel={isConsoleMonitorVisible ? "Fechar Monitor do Console" : "Abrir Monitor do Console"}
+                >
+                  🖥️ Console
+                </MaterialButton>
+                {errorCount > 0 && (
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {errorCount}
+                  </div>
+                )}
+              </div>{/* Teste de Erro - Debugging */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  console.error('🧪 Teste de erro manual disparado');
+                  throw new Error('Erro de teste para debugging');
+                }}
+                theme={currentTheme}
+                ariaLabel="Forçar erro para teste do sistema de debugging"
+              >
+                🧪 Erro Teste
+              </MaterialButton>
+
+              {/* API da Bíblia Digital - Teste de Criação de Usuário */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={handleCreateBibleUser}
+                theme={currentTheme}
+                ariaLabel="Criar usuário na API da Bíblia Digital"
+                disabled={bibleLoading}
+              >
+                {bibleLoading ? 'Criando...' : 'Testar API Bíblia'}
               </MaterialButton>
             </div>
           </div>
@@ -279,6 +465,58 @@ const App: React.FC = () => {
         className={`shadow-lg transition-all duration-300 ease-in-out bg-theme-header-bg ${showControlsHeader ? 'max-h-[500px] opacity-100 px-3 md:px-4 py-2 md:py-3' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`} 
         style={{ zIndex: Z_INDICES.controlsHeader }}
       >        <div className="container mx-auto">
+          {/* Time Comparison Results Display */}
+          {timeComparison.isActive && (
+            <div className="mb-4 p-3 rounded-lg bg-theme-card-bg border border-theme-border">
+              <div className="flex justify-between items-center mb-2">
+                <h3 style={{ fontSize: getScaledFontSize('base') }} className="font-semibold text-theme-card-header">
+                  Comparação de Tempo
+                </h3>
+                <button
+                  onClick={clearTimeComparison}
+                  className="text-theme-text hover:text-theme-accent transition-colors"
+                  title="Fechar comparação"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="space-y-2 text-sm">
+                <div className="flex flex-wrap gap-2">
+                  <div className={`px-3 py-1 rounded ${timeComparison.item1 ? 'bg-theme-accent text-white' : 'bg-theme-app-bg text-theme-text border border-theme-border'}`}>
+                    {timeComparison.item1 ? timeComparison.item1.name : 'Clique em um evento/personagem'}
+                  </div>
+                  <span className="text-theme-text self-center">vs</span>
+                  <div className={`px-3 py-1 rounded ${timeComparison.item2 ? 'bg-theme-accent text-white' : 'bg-theme-app-bg text-theme-text border border-theme-border'}`}>
+                    {timeComparison.item2 ? timeComparison.item2.name : 'Clique em outro evento/personagem'}
+                  </div>
+                </div>
+                
+                {timeComparison.item1 && timeComparison.item2 && (() => {
+                  const result = calculateTimeDifference(timeComparison.item1, timeComparison.item2);
+                  return result ? (
+                    <div className="mt-3 p-2 bg-theme-app-bg rounded text-theme-text">
+                      <p className="font-medium">{result.description}</p>
+                      <p className="text-xs opacity-75 mt-1">
+                        Diferença: {result.absoluteDifference} anos
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-3 p-2 bg-yellow-100 text-yellow-800 rounded">
+                      <p>Não foi possível calcular: informações de ano em falta</p>
+                    </div>
+                  );
+                })()}
+                
+                {timeComparison.isActive && !timeComparison.item1 && (
+                  <p className="text-xs text-theme-text opacity-75">
+                    Clique em eventos na linha do tempo ou personagens para compará-los
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
           <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
             <div className="flex space-x-1 md:space-x-2 items-center">
               {/* Year Reference Mode Toggle */}
@@ -304,9 +542,8 @@ const App: React.FC = () => {
                   ariaLabel="Filtrar Eventos"
                 >
                   {isEventSelectorOpen ? <ChevronUpHeroIcon className="w-4 h-4 ml-1" /> : <ChevronDownHeroIcon className="w-4 h-4 ml-1" />}
-                </MaterialButton>
-                {isEventSelectorOpen && (
-                  <div className="absolute right-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns }}>
+                </MaterialButton>                {isEventSelectorOpen && (
+                  <div className="absolute left-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns, maxWidth: 'calc(100vw - 2rem)' }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Selecionar Eventos</h3>
                     {groupedEvents.map(({ category, events: categoryEvents }) => ( 
                       <div key={category} className="mb-3">
@@ -340,8 +577,61 @@ const App: React.FC = () => {
                 >
                   {isPersonVisibilityPanelOpen ? <ChevronUpHeroIcon className="w-4 h-4 ml-1" /> : <ChevronDownHeroIcon className="w-4 h-4 ml-1" />}
                 </MaterialButton>                {isPersonVisibilityPanelOpen && (
-                  <div className="absolute right-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns }}>
+                  <div className="absolute right-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border transform -translate-x-full md:translate-x-0" style={{ zIndex: Z_INDICES.dropdowns, maxWidth: 'calc(100vw - 2rem)' }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Mostrar/Ocultar Personagens</h3>
+                    
+                    {/* Range Selection Section */}
+                    <div className="mb-4 p-3 border rounded" style={{ borderColor: 'var(--theme-border)' }}>
+                      <h4 className="font-medium mb-2 text-theme-accent">Mostrar Apenas Entre Dois Personagens:</h4>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-sm text-theme-text">De:</label>
+                          <select 
+                            value={selectedPersonRange.start || ''}
+                            onChange={(e) => setSelectedPersonRange(prev => ({ ...prev, start: e.target.value || null }))}
+                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text"
+                          >
+                            <option value="">Selecionar personagem inicial</option>
+                            {sortedVisiblePeople.map(person => (
+                              <option key={person.id} value={person.id}>{person.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm text-theme-text">Até:</label>
+                          <select 
+                            value={selectedPersonRange.end || ''}
+                            onChange={(e) => setSelectedPersonRange(prev => ({ ...prev, end: e.target.value || null }))}
+                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text"
+                          >
+                            <option value="">Selecionar personagem final</option>
+                            {sortedVisiblePeople.map(person => (
+                              <option key={person.id} value={person.id}>{person.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (selectedPersonRange.start && selectedPersonRange.end) {
+                              const startIndex = sortedVisiblePeople.findIndex(p => p.id === selectedPersonRange.start);
+                              const endIndex = sortedVisiblePeople.findIndex(p => p.id === selectedPersonRange.end);
+                              const [minIndex, maxIndex] = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)];
+                              
+                              const toHide = allPeople.filter(person => {
+                                const personIndex = sortedVisiblePeople.findIndex(p => p.id === person.id);
+                                return personIndex !== -1 && (personIndex < minIndex || personIndex > maxIndex);
+                              }).map(p => p.id);
+                              
+                              setHiddenCharacterIds(toHide);
+                            }
+                          }}
+                          className="w-full py-1 px-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          Aplicar Seleção
+                        </button>
+                      </div>
+                    </div>
+                    
                     <MaterialButton
                       variant="filled"
                       size="small"
@@ -410,8 +700,7 @@ const App: React.FC = () => {
         </div> 
       </header>      <main 
         className="flex-grow overflow-hidden" 
-        style={{ position: 'relative' }}
-      ><TimelineView 
+        style={{ position: 'relative' }}      >        <TimelineView 
           people={peopleData}
           events={eventsData.filter(event => selectedEventIds.includes(event.id))}
           onSelectPerson={handleSelectPerson}
@@ -428,6 +717,10 @@ const App: React.FC = () => {
           onTogglePersonLifeLine={togglePersonLifeLine}
           onBibleReferenceClick={handleBibleReferenceClick}
           isYearRulerSticky={isYearRulerSticky}
+          eventCardPositions={eventCardPositions}
+          onEventCardPositionChange={handleEventCardPositionChange}
+          timeComparison={timeComparison}
+          onTimeComparisonItemSelect={handleTimeComparisonItemSelect}
         />
       </main>      <CharacterCard 
         person={selectedPerson} 
@@ -446,12 +739,25 @@ const App: React.FC = () => {
         reference={bibleVerseModal.reference}
         onClose={closeBibleVerseModal}
         theme={currentTheme}
+      />      {/* Console Monitor para depuração em tempo real */}
+      <ConsoleMonitor
+        isVisible={isConsoleMonitorVisible}
+        onToggle={toggleConsoleMonitor}
+        onErrorCountChange={handleErrorCountChange}
+        theme={currentTheme}
+      />
+
+      {/* Error Display para debugging visual */}
+      <ErrorDisplay
+        theme={currentTheme}
+        onErrorsChange={handleErrorCountChange}
       />
 
       <footer className={`text-center p-3 bg-theme-header-bg text-theme-accent`} style={{ fontSize: getScaledFontSize('xs') }}>
         Exploração Visual das Narrativas Fundacionais do Livro de Gênesis.
       </footer>
     </div>
+    </ErrorBoundary>
   );
 };
 

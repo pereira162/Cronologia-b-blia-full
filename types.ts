@@ -2,6 +2,9 @@
 // Este arquivo define as interfaces e tipos TypeScript usados em toda a aplicação
 // para garantir a consistência e a segurança dos dados.
 
+// Exportar novos tipos para cards de eventos
+export type { EventCardPosition, EventCardInteraction } from './types/eventCard';
+
 // Interface para representar um personagem bíblico.
 export interface Person {
   id: string; 
@@ -103,9 +106,33 @@ export interface TimelineViewProps {
   verticalScale: number;   // Escala vertical base (do slider)
   globalUiScale: number;   // Escala global da UI (do slider)
   hiddenCharacterIds: string[];
-  onToggleCharacterVisibility: (personId: string) => void;
-  showCharacterBarControls: boolean;  activePersonLifeLines: Record<string, boolean>;
+  onToggleCharacterVisibility: (personId: string) => void;  showCharacterBarControls: boolean;
+  activePersonLifeLines: Record<string, boolean>;
   onTogglePersonLifeLine: (personId: string) => void;
   onBibleReferenceClick?: (reference: string) => void; // Optional for bible verse modal
   isYearRulerSticky?: boolean; // Optional prop for controlling year ruler stickiness from parent
+  eventCardPositions: Record<string, EventCardPosition>;
+  onEventCardPositionChange: (eventId: string, position: Partial<EventCardPosition>) => void;
+  timeComparison?: TimeComparisonState; // Optional time comparison state
+  onTimeComparisonItemSelect?: (item: TimeComparisonItem) => void; // Optional time comparison handler
+}
+
+// Types for time difference calculation
+export type TimeComparisonItem = {
+  id: string;
+  type: 'event' | 'person-birth' | 'person-death';
+  name: string;
+  year?: number;
+};
+
+export interface TimeComparisonState {
+  item1: TimeComparisonItem | null;
+  item2: TimeComparisonItem | null;
+  isActive: boolean;
+}
+
+export interface TimeComparisonResult {
+  yearDifference: number;
+  absoluteDifference: number;
+  description: string;
 }

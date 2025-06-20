@@ -22,21 +22,28 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ person, onClose, onBibleR
 
   // Filtra os eventos bíblicos para encontrar aqueles que incluem o ID do personagem atual.
   const relatedEvents = eventsData.filter(event => event.characterIds.includes(person.id));
-
   // Helper function to create clickable Bible references
-  const renderBibleReference = (chapter: string | number) => {
-    if (!chapter || !onBibleReferenceClick) {
-      return `(Gênesis ${chapter})`;
+  const renderBibleReference = (reference: string) => {
+    if (!reference || !onBibleReferenceClick) {
+      return reference;
     }
+    
+    // Check if reference contains bible book names (not just a chapter number)
+    const hasBibleBook = /\b(gênesis|êxodo|levítico|números|deuteronômio|josué|juízes|rute|samuel|reis|crônicas|esdras|neemias|ester|jó|salmos|provérbios|eclesiastes|cânticos|isaías|jeremias|lamentações|ezequiel|daniel|oséias|joel|amós|obadias|jonas|miquéias|naum|habacuque|sofonias|ageu|zacarias|malaquias|mateus|marcos|lucas|joão|atos|romanos|coríntios|gálatas|efésios|filipenses|colossenses|tessalonicenses|timóteo|tito|filemom|hebreus|tiago|pedro|judas|apocalipse)\b/i.test(reference);
+    
+    if (hasBibleBook) {
       return (
-      <button
-        onClick={() => onBibleReferenceClick(`Genesis ${chapter}`)}
-        className="md-interactive text-blue-600 hover:text-blue-800 underline ml-1"
-        title="Clique para ver o versículo"
-      >
-        (Gênesis {chapter})
-      </button>
-    );
+        <button
+          onClick={() => onBibleReferenceClick(reference)}
+          className="md-interactive text-blue-600 hover:text-blue-800 underline ml-1"
+          title="Clique para ver o versículo"
+        >
+          {reference}
+        </button>
+      );
+    }
+    
+    return reference;
   };
 
   return (
@@ -63,10 +70,13 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ person, onClose, onBibleR
           >
             <XMarkIcon className="w-6 h-6" />
           </button>
-        </div>
-          {/* Informações adicionais: Significado do nome e Referência Bíblica */}
+        </div>        {/* Informações adicionais: Significado do nome e Referência Bíblica */}
         {person.nameMeaning && <p className="md-label-large italic mb-1 text-theme-accent">Significado: {person.nameMeaning}</p>}
-        {person.bibleReference && <p className="md-label-large mb-3 text-theme-text">Referência: {person.bibleReference}</p>}
+        {person.bibleReference && (
+          <p className="md-label-large mb-3 text-theme-text">
+            Referência: {renderBibleReference(person.bibleReference)}
+          </p>
+        )}
 
         {/* Grid com dados cronológicos: Nascimento, Morte, Tempo de Vida, Idade na Paternidade */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 md-body-medium">
@@ -84,11 +94,14 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ person, onClose, onBibleR
         {/* TODO: Adicionar mãe, cônjuges, filhos com links/botões para abrir seus respectivos cards */}        {/* Lista de eventos chave relacionados ao personagem */}
         {relatedEvents.length > 0 && (
           <div className="mt-4">
-            <h3 className="md-title-large font-semibold mb-2 text-theme-card-header">Eventos Chave:</h3>
-            <ul className="list-disc list-inside space-y-1 md-body-medium">
+            <h3 className="md-title-large font-semibold mb-2 text-theme-card-header">Eventos Chave:</h3>            <ul className="list-disc list-inside space-y-1 md-body-medium">
               {relatedEvents.map(event => (
                 <li key={event.id} className="text-theme-text">
-                  {event.name} {event.genesisChapter && renderBibleReference(event.genesisChapter)}
+                  {event.name} {event.genesisChapter && (
+                    <span className="text-sm">
+                      ({renderBibleReference(`Gênesis ${event.genesisChapter}`)})
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,139 +1,151 @@
-// useBibleApi.ts
-// Custom hook for fetching Bible verses from API
-// Using the Bible API (https://bible-api.com/) for free access to Bible verses
-
 import { useState, useCallback } from 'react';
 
-export interface BibleVerse {
-  reference: string;
-  verses: Array<{
-    book_id: string;
-    book_name: string;
-    chapter: number;
-    verse: number;
-    text: string;
-  }>;
+interface BibleVerse {
+  verse: number;
   text: string;
-  translation_id: string;
-  translation_name: string;
-  translation_note: string;
 }
 
-export interface BibleApiState {
-  verse: BibleVerse | null;
+interface BibleChapter {
+  chapter: number;
+  verses: BibleVerse[];
+}
+
+interface BibleApiResponse {
+  book: string;
+  chapters: BibleChapter[];
+  translation: string;
+}
+
+interface BibleApiError {
+  message: string;
+  details?: string;
+}
+
+interface UseBibleApiReturn {
+  fetchVerses: (reference: string, translation?: string) => Promise<BibleApiResponse>;
   loading: boolean;
-  error: string | null;
+  error: BibleApiError | null;
 }
 
-/**
- * Custom hook for fetching Bible verses from API
- * 
- * @returns Object with verse data, loading state, error state, and fetch function
- * 
- * @example
- * const { verse, loading, error, fetchVerse } = useBibleApi();
- * fetchVerse('João 3:16'); // Fetches John 3:16
- */
-export function useBibleApi() {
-  const [state, setState] = useState<BibleApiState>({
-    verse: null,
-    loading: false,
-    error: null,
-  });
+// Supported translations
+export const BIBLE_TRANSLATIONS = {
+  ARA: 'ara', // Almeida Revista e Atualizada (Portuguese)
+  ACF: 'acf', // Almeida Corrigida Fiel (Portuguese)
+  NVI: 'nvi', // Nova Versão Internacional (Portuguese)
+  KJV: 'kjv', // King James Version (English)
+  ESV: 'esv', // English Standard Version (English)
+} as const;
 
-  /**
-   * Fetch a Bible verse by reference
-   * @param reference - Bible reference (e.g., "João 3:16", "Gênesis 1:1")
-   * @param translation - Translation to use (default: 'almeida')
-   */
-  const fetchVerse = useCallback(async (reference: string, translation: string = 'almeida') => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+export type BibleTranslation = typeof BIBLE_TRANSLATIONS[keyof typeof BIBLE_TRANSLATIONS];
+
+const API_BASE_URL = 'https://bible-api.com';
+
+export const useBibleApi = (): UseBibleApiReturn => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<BibleApiError | null>(null);
+
+  const parseReference = (reference: string) => {
+    // Parse references like "Genesis 1:1-3", "John 3:16", "Matthew 5:1-7:29"
+    const match = reference.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(?:(\d+):)?(\d+))?$/);
+    if (!match) {
+      throw new Error('Invalid reference format. Use format like "Genesis 1:1" or "Genesis 1:1-3"');
+    }
+
+    const [, book, startChapter, startVerse, endChapter, endVerse] = match;
+    
+    return {
+      book: book.trim(),
+      startChapter: parseInt(startChapter),
+      startVerse: startVerse ? parseInt(startVerse) : null,
+      endChapter: endChapter ? parseInt(endChapter) : null,
+      endVerse: endVerse ? parseInt(endVerse) : null,
+    };
+  };
+
+  const fetchSingleChapter = async (book: string, chapter: number, translation: string): Promise<BibleChapter> => {
+    const url = `${API_BASE_URL}/${encodeURIComponent(book)}+${chapter}?translation=${translation}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${book} ${chapter}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.verses || !Array.isArray(data.verses)) {
+      throw new Error(`Invalid response format for ${book} ${chapter}`);
+    }
+
+    return {
+      chapter: chapter,
+      verses: data.verses.map((verse: any) => ({
+        verse: verse.verse,
+        text: verse.text || ''
+      }))
+    };
+  };
+
+  const fetchVerses = useCallback(async (reference: string, translation: string = BIBLE_TRANSLATIONS.ARA): Promise<BibleApiResponse> => {
+    setLoading(true);
+    setError(null);
 
     try {
-      // Clean and format the reference
-      const formattedReference = encodeURIComponent(reference);
-      
-      // Try multiple API endpoints for better reliability
-      const apiEndpoints = [
-        `https://bible-api.com/${formattedReference}?translation=${translation}`,
-        `https://bible-api.com/${formattedReference}`, // Fallback without translation
-      ];
+      const parsed = parseReference(reference);
+      const chapters: BibleChapter[] = [];
 
-      let response: Response | null = null;
-      let lastError: Error | null = null;
-
-      for (const endpoint of apiEndpoints) {
-        try {
-          response = await fetch(endpoint);
-          if (response.ok) break;
-        } catch (err) {
-          lastError = err as Error;
-          continue;
+      if (parsed.endChapter && parsed.endChapter !== parsed.startChapter) {
+        // Multi-chapter range
+        for (let chapterNum = parsed.startChapter; chapterNum <= parsed.endChapter; chapterNum++) {
+          const chapter = await fetchSingleChapter(parsed.book, chapterNum, translation);
+          
+          // Filter verses for first and last chapters if needed
+          if (chapterNum === parsed.startChapter && parsed.startVerse) {
+            chapter.verses = chapter.verses.filter(v => v.verse >= parsed.startVerse!);
+          }
+          if (chapterNum === parsed.endChapter && parsed.endVerse) {
+            chapter.verses = chapter.verses.filter(v => v.verse <= parsed.endVerse!);
+          }
+          
+          chapters.push(chapter);
         }
+      } else {
+        // Single chapter
+        const chapter = await fetchSingleChapter(parsed.book, parsed.startChapter, translation);
+        
+        // Filter verses if specific range within chapter
+        if (parsed.startVerse || parsed.endVerse) {
+          const startVerse = parsed.startVerse || 1;
+          const endVerse = parsed.endVerse || Math.max(...chapter.verses.map(v => v.verse));
+          chapter.verses = chapter.verses.filter(v => v.verse >= startVerse && v.verse <= endVerse);
+        }
+        
+        chapters.push(chapter);
       }
 
-      if (!response || !response.ok) {
-        throw new Error(lastError?.message || 'Erro ao buscar versículo bíblico');
-      }
-
-      const data: BibleVerse = await response.json();
-      
-      setState({
-        verse: data,
-        loading: false,
-        error: null,
-      });
-
-      return data;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido ao buscar versículo';
-      
-      setState({
-        verse: null,
-        loading: false,
-        error: errorMessage,
-      });
-
-      throw err;
-    }
-  }, []);
-
-  /**
-   * Clear current verse and error state
-   */
-  const clearVerse = useCallback(() => {
-    setState({
-      verse: null,
-      loading: false,
-      error: null,
-    });
-  }, []);
-
-  /**
-   * Parse a Bible reference into components
-   * @param reference - Bible reference string
-   * @returns Parsed components
-   */
-  const parseReference = useCallback((reference: string) => {
-    // Simple regex to parse references like "João 3:16" or "Gênesis 1:1-3"
-    const match = reference.match(/^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$/);
-    
-    if (match) {
       return {
-        book: match[1],
-        chapter: parseInt(match[2]),
-        verseStart: parseInt(match[3]),
-        verseEnd: match[4] ? parseInt(match[4]) : undefined,
+        book: parsed.book,
+        chapters,
+        translation
       };
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      const apiError: BibleApiError = {
+        message: 'Failed to fetch Bible verses',
+        details: errorMessage
+      };
+      setError(apiError);
+      throw apiError;
+    } finally {
+      setLoading(false);
     }
-    
-    return null;
   }, []);
 
   return {
-    ...state,
-    fetchVerse,
-    clearVerse,
-    parseReference,
+    fetchVerses,
+    loading,
+    error
   };
-}
+};
+
+export default useBibleApi;

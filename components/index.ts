@@ -10,6 +10,9 @@ export { default as TimelineView } from './TimelineView';
 export { MaterialButton } from './MaterialButton';
 export { BibleVerseModal } from './BibleVerseModal';
 export { FontSizeControl } from './FontSizeControl';
+export { ConsoleMonitor } from './ConsoleMonitor';
+export { ErrorBoundary } from './ErrorBoundary';
+export { ErrorDisplay } from './ErrorDisplay';
 
 // Enhanced Material Design 3 components (new implementations)
 export { MaterialButton as MaterialButtonEnhanced } from './MaterialButton-enhanced';

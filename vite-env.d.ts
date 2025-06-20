@@ -7,6 +7,7 @@
 interface ImportMetaEnv {
   readonly VITE_API_KEY?: string
   readonly GEMINI_API_KEY?: string
+  readonly REACT_APP_BIBLE_API_TOKEN?: string
   // more env variables...
 }
 

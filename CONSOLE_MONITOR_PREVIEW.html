@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview - Sistema de Console Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .preview-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .console-monitor {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            height: 300px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        .console-header {
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-bottom: 1px solid #555;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        .console-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .console-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            background: #1e1e1e;
+        }
+        .console-message {
+            margin: 2px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .msg-error { color: #ff6b6b; }
+        .msg-warn { color: #ffd93d; }
+        .msg-info { color: #6bcf7f; }
+        .msg-log { color: #ddd; }
+        .timestamp {
+            color: #888;
+            font-size: 10px;
+        }
+        .error-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            border: 2px solid #dc3545;
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+            z-index: 1001;
+        }
+        .error-header {
+            color: #dc3545;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .error-message {
+            color: #333;
+            font-size: 14px;
+        }
+        .floating-badge {
+            position: fixed;
+            bottom: 80px;
+            right: 30px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 999;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .main-content {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-console {
+            position: relative;
+            background: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1>🖥️ Preview: Sistema de Monitoramento de Console</h1>
+        <p><strong>Status:</strong> ✅ Sistema implementado e funcionando</p>
+        
+        <div class="main-content">
+            <h2>Cronologia Bíblica Interativa</h2>
+            <p>Esta é uma simulação de como a aplicação principal aparece com o sistema de debugging ativo.</p>
+            
+            <div class="controls">
+                <button class="btn">🌙 Trocar Tema</button>
+                <button class="btn">👥 Mostrar Personagens</button>
+                <button class="btn btn-console">
+                    🖥️ Console
+                    <span style="position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 10px;">3</span>
+                </button>
+                <button class="btn" style="background: #dc3545;" onclick="simulateError()">🧪 Teste Erro</button>
+            </div>
+        </div>
+
+        <h3>📋 Funcionalidades Implementadas:</h3>
+        <ul>
+            <li>✅ <strong>Console Monitor:</strong> Captura automaticamente todos os console.error, console.warn, console.info, console.log</li>
+            <li>✅ <strong>Auto-abertura:</strong> Monitor abre automaticamente quando há erros</li>
+            <li>✅ <strong>Badge de notificação:</strong> Contador de erros visível no botão do console</li>
+            <li>✅ <strong>Error Boundary:</strong> Captura erros React e mostra fallback</li>
+            <li>✅ <strong>Error Display:</strong> Painel flutuante para erros críticos</li>
+            <li>✅ <strong>Debug Logger:</strong> Log persistente com export/download</li>
+            <li>✅ <strong>Captura de eventos:</strong> Unhandled promises, erros globais</li>
+            <li>✅ <strong>Filtros:</strong> Por tipo de log (error, warn, info, log)</li>
+            <li>✅ <strong>Timestamp:</strong> Data/hora de cada mensagem</li>
+            <li>✅ <strong>Stack trace:</strong> Para erros com stack completo</li>
+        </ul>
+
+        <h3>🔧 Como Usar:</h3>
+        <ol>
+            <li>Execute <code>npm run dev</code> para iniciar o servidor de desenvolvimento</li>
+            <li>Abra <code>http://localhost:5173</code> no navegador</li>
+            <li>O console monitor aparecerá no canto inferior direito</li>
+            <li>Qualquer erro do console será automaticamente capturado e exibido</li>
+            <li>Use o botão "🧪 Teste Erro" no header para forçar erros e testar o sistema</li>
+            <li>Use F12 para abrir DevTools e compare com o monitor interno</li>
+        </ol>
+
+        <h3>⚡ Debugging em Tempo Real:</h3>
+        <p>Agora você pode ver todos os erros diretamente na interface, sem precisar colar logs manualmente!</p>
+    </div>
+
+    <!-- Simulação do Console Monitor -->
+    <div class="console-monitor">
+        <div class="console-badge">3</div>
+        <div class="console-header">
+            🖥️ Console Monitor
+            <button style="background: none; border: none; color: white; cursor: pointer; margin-left: auto;">✕</button>
+        </div>
+        <div class="console-content">
+            <div class="console-message msg-log">
+                <span class="timestamp">[14:23:01]</span> 
+                <span class="msg-log">🚀 App carregado - Sistema de monitoramento ativo</span>
+            </div>
+            <div class="console-message msg-info">
+                <span class="timestamp">[14:23:02]</span> 
+                <span class="msg-info">ℹ️ API da Bíblia Digital configurada</span>
+            </div>
+            <div class="console-message msg-error">
+                <span class="timestamp">[14:23:15]</span> 
+                <span class="msg-error">❌ TypeError: Cannot read property 'length' of undefined</span>
+            </div>
+            <div class="console-message msg-warn">
+                <span class="timestamp">[14:23:16]</span> 
+                <span class="msg-warn">⚠️ Warning: React Hook useEffect has missing dependency</span>
+            </div>
+            <div class="console-message msg-error">
+                <span class="timestamp">[14:23:30]</span> 
+                <span class="msg-error">🧪 Teste de erro manual disparado</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulação do Error Display -->
+    <div class="error-display">
+        <div class="error-header">🚨 Erro Crítico Detectado</div>
+        <div class="error-message">TypeError: Cannot read property 'length' of undefined</div>
+    </div>
+
+    <!-- Badge flutuante -->
+    <div class="floating-badge">!</div>
+
+    <script>
+        function simulateError() {
+            alert('🧪 Em um ambiente real, isso dispararia um erro que seria automaticamente capturado pelo sistema de monitoramento!');
+        }
+    </script>
+</body>
+</html>

@@ -39,6 +39,43 @@ Uma aplicação interativa para explorar visualmente as narrativas e cronologia 
 - **Heroicons** para ícones
 - **Bible API** para integração com versículos
 
+## 📖 API da Bíblia
+
+A aplicação integra com múltiplas APIs da Bíblia para fornecer acesso aos versículos:
+
+### APIs Suportadas
+
+1. **bible-api.com** (Gratuita) - Padrão
+   - Acesso livre sem necessidade de chave API
+   - Suporte a múltiplas traduções
+   - Funciona automaticamente
+
+2. **API.Bible** (Premium) - Opcional
+   - Requer chave API (obtenha em https://api.bible)
+   - Mais traduções e recursos avançados
+   - Fallback automático para a API gratuita
+
+### Recursos
+
+- **Normalização Automática**: Converte referências em português para inglês
+- **Múltiplas Traduções**: Suporte a KJV, ESV, Almeida, NVI
+- **Sistema de Fallback**: Tenta múltiplas APIs para máxima confiabilidade
+- **Cache Inteligente**: Otimização de performance
+- **Referências Clicáveis**: Links interativos em todas as referências bíblicas
+
+### Uso
+
+```javascript
+const { verse, loading, error, fetchVerse } = useBibleApi();
+
+// Buscar versículo (português ou inglês)
+await fetchVerse('João 3:16');
+await fetchVerse('Gênesis 1:1');
+
+// Com chave API premium (opcional)
+await fetchVerse('João 3:16', 'sua-chave-api');
+```
+
 ## 📖 Documentação
 
 Consulte [STACK_DOCUMENTATION.md](STACK_DOCUMENTATION.md) para documentação técnica completa.

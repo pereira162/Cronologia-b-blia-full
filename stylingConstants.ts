@@ -85,11 +85,11 @@ export const Z_INDICES = {
   // Pin button needs to be above yearHeader if it's part of scroll container,
   // and below dropdowns/modals if they are globally positioned.
   // Dropdowns need to be above general UI but below modals.
-  // Modals are highest.
-  // Controls header needs to be high, but dropdowns from it need to be higher.
+  // Modals are highest.  // Controls header needs to be high, but dropdowns from it need to be higher.
   controlsHeader: 45,       // Cabeçalho de controles retrátil (container)
   dropdowns: 50,            // Dropdowns from controls header, should be above controlsHeader and sticky pin button
   modals: 60,               // Modals (CharacterCard, EventCard)
+  fontSizeControl: 200,     // Font size overlay - highest priority overlay, above everything
 };
 
 // Largura em pixels por 100 anos na escala 1.0x
