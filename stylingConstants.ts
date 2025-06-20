@@ -32,8 +32,8 @@ export const BASE_DIMENSIONS = {
   barVerticalGap: 10,           // Espaçamento vertical base entre barras de personagens
   siblingVerticalGap: 5,        // Espaçamento vertical base entre barras de irmãos
   yearHeaderHeight: 100,         // Altura base da régua reduzida para 3 zonas compactas (conteúdo interno escala com globalUiScale)
-  personBlockGapBelowStickyRuler: 10, // Gap em pixels abaixo da régua pegajosa até a primeira barra de personagem
-  personBlockGapWithNonStickyRuler: 10, // Gap em pixels do topo da área de conteúdo (já preenchida) até a primeira barra de personagem quando a régua não é pegajosa
+  personBlockGapBelowStickyRuler: 0, // Gap em pixels abaixo da régua pegajosa até a primeira barra de personagem
+  personBlockGapWithNonStickyRuler: 0, // Gap em pixels do topo da área de conteúdo (já preenchida) até a primeira barra de personagem quando a régua não é pegajosa
   eventNameLabelHeight: 30,     // Largura base da etiqueta do nome do evento (quando vertical)
   eventLabelEstimatedHeight: 200, // Altura/Comprimento máximo estimado base para o texto vertical do evento
   eventMinVerticalGap: 30,        // Espaçamento vertical mínimo base entre títulos de eventos e outros elementos

@@ -151,13 +151,13 @@ const TimelineView: React.FC<TimelineViewProps> = ({  people: allPeople, events,
     if (isYearRulerSticky) {
       // When ruler is sticky, ensure enough space below it for first character
       // Add extra padding to avoid overlap
-      return SCALED_YEAR_HEADER_HEIGHT + (BASE_DIMENSIONS.personBlockGapBelowStickyRuler * effectiveVerticalScale) + 20;
+      return SCALED_YEAR_HEADER_HEIGHT + (BASE_DIMENSIONS.personBlockGapBelowStickyRuler * effectiveVerticalScale) - 90 + 20;
     } else {
       // When ruler is not sticky, ensure first character is visible and not hidden by header
       // Add extra padding for better visibility
       return (BASE_DIMENSIONS.personBlockGapWithNonStickyRuler * effectiveVerticalScale) + 30;
     }
-  }, [isYearRulerSticky, SCALED_YEAR_HEADER_HEIGHT, effectiveVerticalScale]);
+  }, [isYearRulerSticky, SCALED_YEAR_HEADER_HEIGHT, effectiveVerticalScale, SCALED_BAR_VERTICAL_GAP, SCALED_BAR_HEIGHT]);
   
   const SCALED_EVENT_LABEL_MAX_HEIGHT = BASE_DIMENSIONS.eventLabelEstimatedHeight * globalUiScale;
   const SCALED_EVENT_MIN_VERTICAL_GAP = BASE_DIMENSIONS.eventMinVerticalGap * effectiveVerticalScale;
