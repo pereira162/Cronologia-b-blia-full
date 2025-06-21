@@ -822,27 +822,27 @@ const processedEventsData = useMemo(() => {
         tabIndex={0}
         onClick={() => onSelectPerson(p)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectPerson(p);}}
-      >        <div className={`flex items-center h-full ${showCharacterBarControls && !isSibling ? 'w-auto min-w-[60px]' : 'w-auto'}`}>
+      >        <div className={`flex items-center h-full ${showCharacterBarControls && !isSibling ? 'w-auto min-w-[80px]' : 'w-auto'}`}>
           {showCharacterBarControls && !isSibling && (
             <div style={{ transform: `scale(${Math.min(globalUiScale * 0.6, 1.0)})`, transformOrigin: 'left center' }} className="flex items-center">                <button
                     onClick={(e) => { e.stopPropagation(); onToggleCharacterVisibility(p.id); }}
-                    className="md-interactive character-button p-1 text-theme-control-icon hover:text-red-400 focus:outline-none rounded-md-sm"
-                    title={p.isVisible ? "Ocultar personagem" : "Mostrar personagem"}
-                    aria-pressed={!p.isVisible}
-                >
-                    {p.isVisible ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                </button>
-                <button
+                    className="md-interactive character-button p-2 bg-black text-white border border-white hover:opacity-80 focus:outline-none rounded-md-sm"
+                     title={p.isVisible ? "Ocultar personagem" : "Mostrar personagem"}
+                     aria-pressed={!p.isVisible}
+                 >
+                     {p.isVisible ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                 </button>
+                 <button
                     onClick={(e) => { e.stopPropagation(); onTogglePersonLifeLine(p.id); }}
-                    className={`md-interactive character-button p-1.5 focus:outline-none transition-colors rounded-md-sm ${activePersonLifeLines[p.id] ? 'text-yellow-400' : 'text-theme-control-icon hover:text-theme-character-bar-text'}`}
-                    title={activePersonLifeLines[p.id] ? "Ocultar linhas de vida" : "Mostrar linhas de vida"}
-                    aria-pressed={!!activePersonLifeLines[p.id]}
-                >
-                    {activePersonLifeLines[p.id] ? <ArrowsPointingOutIcon className="w-5 h-5" /> : <ArrowsPointingInIcon className="w-5 h-5" />}
-                </button>
-                {hasVisibleExpandableSiblings && (                  <button 
+                    className={`md-interactive character-button p-2 bg-black text-white border border-white transition-colors rounded-md-sm ${activePersonLifeLines[p.id] ? 'text-yellow-400' : 'text-white hover:opacity-80'}`}
+                     title={activePersonLifeLines[p.id] ? "Ocultar linhas de vida" : "Mostrar linhas de vida"}
+                     aria-pressed={!!activePersonLifeLines[p.id]}
+                 >
+                     {activePersonLifeLines[p.id] ? <ArrowsPointingOutIcon className="w-5 h-5" /> : <ArrowsPointingInIcon className="w-5 h-5" />}
+                 </button>
+                 {hasVisibleExpandableSiblings && (                  <button 
                     onClick={(e) => toggleSiblingExpansion(p.id, e)} 
-                    className="md-interactive character-button p-0.5 focus:outline-none text-theme-control-icon hover:text-theme-character-bar-text rounded-md-sm" 
+                    className="md-interactive character-button p-2 bg-black text-white border border-white focus:outline-none rounded-md-sm" 
                     title={expandedSiblingGroups[p.id] ? "Recolher irmãos" : "Expandir irmãos"} 
                     aria-expanded={!!expandedSiblingGroups[p.id]}
                   >
