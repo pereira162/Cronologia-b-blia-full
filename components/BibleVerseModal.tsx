@@ -18,16 +18,15 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
   onClose,
   reference
 }) => {
-  const [selectedVersion, setSelectedVersion] = React.useState('nvi');
+  const [selectedVersion, setSelectedVersion] = React.useState('acf');
   const { loading, error, currentReference, fetchByReference } = useBibleApi();
 
   // Versões disponíveis da Bíblia
   const availableVersions = [
     { id: 'nvi', name: 'Nova Versão Internacional (NVI)' },
-    { id: 'acf', name: 'Almeida Corrigida Fiel (ACF)' },
-    { id: 'naa', name: 'Nova Almeida Atualizada (NAA)' },
-    { id: 'aa', name: 'Almeida Antiga (AA)' }
+    { id: 'acf', name: 'Almeida Corrigida Fiel (ACF)' }
   ];
+  const currentVersionObj = availableVersions.find(v => v.id === selectedVersion);
   // Buscar conteúdo quando modal abrir ou referência/versão mudar
   React.useEffect(() => {
     if (isOpen && reference) {
@@ -60,43 +59,8 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
     };
   }, [isOpen, onClose]);  if (!isOpen) return null;
 
-  // Função para renderizar conteúdo de um versículo
-  const renderVerse = (verse: any, showNumber: boolean = true) => (
-    <div key={verse.number || verse.verse} className="flex space-x-3">
-      {showNumber && (
-        <span className="font-bold text-theme-accent mt-1 min-w-[2rem] text-sm">
-          {verse.number || verse.verse}
-        </span>
-      )}
-      <p className="text-theme-text leading-relaxed">
-        {verse.text}
-      </p>
-    </div>
-  );
+  // ...existing code...
 
-  // Função para renderizar capítulo
-  const renderChapter = (chapter: any) => (
-    <div className="space-y-4">
-      <div className="border-b border-theme-border pb-3">
-        <h3 className="text-xl font-semibold text-theme-header-text">
-          {chapter.book.name} - Capítulo {chapter.chapter.number}
-        </h3>
-        <p className="text-sm text-theme-text opacity-75">
-          {chapter.chapter.verses} versículos • {chapter.book.author}
-        </p>
-      </div>
-      
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {chapter.verses.map((verse: any) => renderVerse(verse))}
-      </div>
-      
-      <div className="border-t border-theme-border pt-3">
-        <span className="text-sm text-theme-text opacity-75">
-          {selectedVersion.toUpperCase()} • {chapter.book.group}
-        </span>
-      </div>
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
@@ -182,7 +146,7 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
                         {currentReference.book.name} - Capítulo {chapter.number}
                       </h4>
                       <p className="text-sm text-theme-text opacity-75">
-                        {chapter.verses.length} versículo{chapter.verses.length > 1 ? 's' : ''} • {currentReference.version.toUpperCase()}
+                        {chapter.verses.length} versículo{chapter.verses.length > 1 ? 's' : ''} • {selectedVersion.toUpperCase()} - {currentReference.versionName || currentVersionObj?.name}
                       </p>
                       {currentReference.book.author && (
                         <p className="text-sm text-theme-text opacity-75 mt-1">
@@ -199,7 +163,7 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
                             <span className="font-bold text-theme-accent mr-2">
                               {verse.number}
                             </span>
-                            "{verse.text}"
+                            {verse.text.replace(/^"|"$/g, '')}
                           </p>
                         </div>
                       ))}
@@ -211,7 +175,7 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
               {/* Rodapé da referência */}
               <div className="border-t border-theme-border pt-3">
                 <span className="text-sm text-theme-text opacity-75">
-                  {selectedVersion.toUpperCase()} • {currentReference.book.group}
+                  {selectedVersion.toUpperCase()} - {currentReference.versionName || currentVersionObj?.name} • {currentReference.book.group}
                 </span>
               </div>
             </div>

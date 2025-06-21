@@ -196,6 +196,7 @@ export interface BibleReferenceResult {
   chapters: BibleChapter[];
   reference: string;
   version: string;
+  versionName?: string;
   totalVerses?: number;
   content?: string;
   text?: string; // Para compatibilidade com diferentes formatos de resposta
@@ -223,7 +224,7 @@ export async function getBooks(): Promise<BibleBook[]> {
 }
 
 // Função simplificada para buscar versículos por referência
-export async function getVerseByReference(reference: string): Promise<BibleReferenceResult> {
+export async function getVerseByReference(reference: string, version: string = 'acf'): Promise<BibleReferenceResult> {
   try {
     // Validar entrada
     if (!reference || typeof reference !== 'string' || reference.trim() === '') {
@@ -236,123 +237,114 @@ export async function getVerseByReference(reference: string): Promise<BibleRefer
     
     if (parts.length < 2) {
       throw new Error(`Formato de referência inválido: ${reference}`);
-    }    const bookName = parts[0];
-    const chapterVerse = parts[1];
-    
-    // Verificar se é capítulo inteiro ou versículo específico
-    let chapter: string;
-    let verse: string | undefined;
-    
-    if (chapterVerse.includes(':')) {
-      // Versículo específico (ex: "3:16")
-      [chapter, verse] = chapterVerse.split(':');
-    } else {
-      // Capítulo inteiro (ex: "3")
-      chapter = chapterVerse;
-      verse = undefined;
     }
-    
-    // Validar componentes
-    if (!bookName || !chapter) {
-      throw new Error(`Componentes da referência inválidos: ${reference}`);
-    }
-
+    const bookName = parts[0];
     // Mapear nome do livro para abreviação da API
     const normalizedBookName = bookName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const bookAbbrev = BOOK_MAPPING[normalizedBookName] || BOOK_MAPPING[bookName.toLowerCase()] || bookName.toLowerCase();    const chapterNum = parseInt(chapter);
-    const verseNum = verse ? parseInt(verse) : undefined;
-    
-    if (isNaN(chapterNum) || chapterNum < 1) {
-      throw new Error(`Número de capítulo inválido: ${reference}`);
-    }
-    
-    if (verse && (isNaN(verseNum!) || verseNum! < 1)) {
-      throw new Error(`Número de versículo inválido: ${reference}`);
-    }
+    const bookAbbrev = BOOK_MAPPING[normalizedBookName] || BOOK_MAPPING[bookName.toLowerCase()] || bookName.toLowerCase();
 
-    // Construir URL baseada no tipo de consulta
-    let endpoint: string;
-    if (verse) {
-      // Versículo específico
-      endpoint = `${BIBLE_API_URL}/verses/nvi/${bookAbbrev}/${chapterNum}/${verseNum}`;
-    } else {
-      // Capítulo inteiro
-      endpoint = `${BIBLE_API_URL}/books/nvi/${bookAbbrev}/${chapterNum}`;
-    }
-    
-    const response = await fetch(endpoint, {
-      headers: {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
+
+    // Determinar versão a usar (suporta apenas ACF e NVI; padrão ACF)
+    const providedVersion = version.toLowerCase();
+    const usedVersion = providedVersion === 'nvi' ? 'nvi' : 'acf';
+    const versionName = usedVersion === 'nvi' ? 'Nova Versão Internacional' : 'Almeida Corrigida Fiel';
+
+    // Extrair múltiplas referências separadas por vírgula (ex: "4:25, 5:3-8")
+    const rawRefs = parts.slice(1).join(' ').split(',').map(r => r.trim()).filter(r => r);
+    const urls: string[] = [];
+    rawRefs.forEach(ref => {
+      const verseRangeMatch = ref.match(/^(\d+):(\d+)-(\d+)$/);
+      const chapterRangeMatch = ref.match(/^(\d+)-(\d+)$/);
+      if (verseRangeMatch) {
+        // Verses range in same chapter
+        const chap = parseInt(verseRangeMatch[1], 10);
+        const startV = parseInt(verseRangeMatch[2], 10);
+        const endV = parseInt(verseRangeMatch[3], 10);
+        for (let v = startV; v <= endV; v++) {
+          urls.push(`${BIBLE_API_URL}/verses/${usedVersion}/${bookAbbrev}/${chap}/${v}`);
+        }
+      } else if (chapterRangeMatch) {
+        // Multiple full chapters
+        const startC = parseInt(chapterRangeMatch[1], 10);
+        const endC = parseInt(chapterRangeMatch[2], 10);
+        for (let c = startC; c <= endC; c++) {
+          urls.push(`${BIBLE_API_URL}/verses/${usedVersion}/${bookAbbrev}/${c}`);
+        }
+      } else if (ref.includes(':')) {
+        // Single verse
+        const [chapStr, vStr] = ref.split(':');
+        const chap = parseInt(chapStr, 10);
+        const v = parseInt(vStr, 10);
+        urls.push(`${BIBLE_API_URL}/verses/${usedVersion}/${bookAbbrev}/${chap}/${v}`);
+      } else {
+        // Single chapter
+        const chap = parseInt(ref, 10);
+        urls.push(`${BIBLE_API_URL}/verses/${usedVersion}/${bookAbbrev}/${chap}`);
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`Erro HTTP ao buscar referência: ${response.status} - ${response.statusText}`);
-    }    const data = await response.json();
-    
-    // Verificar se a resposta tem o formato esperado
-    if (!data) {
-      throw new Error('Resposta da API inválida ou vazia');
-    }
-    
-    // Adaptar resposta baseada no tipo de consulta
-    if (verse) {
-      // Versículo específico
-      if (!data.text) {
-        throw new Error('Versículo não encontrado');
-      }
-      
-      return {
-        book: data.book || { 
-          name: bookName, 
-          abbrev: { pt: bookName, en: bookName },
-          author: '',
-          chapters: 0,
-          group: '',
-          testament: ''
+    // Requisições paralelas (ignorar falhas/404)
+    const settled = await Promise.allSettled(
+      urls.map(u => fetch(u, {
+        headers: {
+          'Authorization': `Bearer ${API_TOKEN}`,
+          'Content-Type': 'application/json',
         },
-        chapters: [{
-          number: chapterNum,
-          verses: [{
-            number: verseNum!,
-            text: data.text
-          }]
-        }],
-        reference: reference,
-        version: 'NVI',
-        totalVerses: 1,
-        content: data.text,
-        text: data.text
-      };
-    } else {
-      // Capítulo inteiro
-      if (!data.verses || !Array.isArray(data.verses)) {
-        throw new Error('Capítulo não encontrado');
-      }
-      
-      return {
-        book: data.book || { 
-          name: bookName, 
-          abbrev: { pt: bookName, en: bookName },
-          author: '',
-          chapters: 0,
-          group: '',
-          testament: ''
-        },
-        chapters: [{
-          number: chapterNum,
-          verses: data.verses.map((v: any) => ({
-            number: v.number || v.verse,
-            text: v.text
-          }))
-        }],        reference: reference,
-        version: 'NVI',
-        totalVerses: data.verses.length,
-        content: data.verses.map((v: any) => v.text).join(' '),
-        text: data.verses.map((v: any) => v.text).join(' ')
-      };
+      }))
+    );
+    const responses = settled
+      .filter((r: any) => r.status === 'fulfilled' && r.value.ok)
+      .map((r: any) => r.value);
+    if (responses.length === 0) {
+      throw new Error('Nenhum versículo encontrado para a versão selecionada');
     }
+    // Extrair JSONs e remover aspas desnecessárias
+    const datas = await Promise.all(responses.map(r => r.json()));
+    datas.forEach((d: any) => {
+      if (d.text) d.text = d.text.replace(/^"(.*)"$/, '$1');
+      if (d.verses) d.verses.forEach((v: any) => {
+        if (v.text) v.text = v.text.replace(/^"(.*)"$/, '$1');
+      });
+    });
+
+    // Combinar resultados em capítulos e versos
+    const chaptersMap: { [chapNum: number]: BibleVerse[] } = {};
+    // Associar cada resposta ao URL correspondente para extrair capítulo e verso
+    datas.forEach((d, idx) => {
+      const url = urls[idx];
+      const parts = url.split('/');
+      if (d.verses) {
+        // resposta de capítulo completo
+        const chapNum = parseInt(parts[parts.length - 1], 10);
+        d.verses.forEach((v: any) => {
+          if (!chaptersMap[chapNum]) chaptersMap[chapNum] = [];
+          chaptersMap[chapNum].push({ number: v.number || v.verse, text: v.text });
+        });
+      } else if (d.text !== undefined) {
+        // resposta de versículo único
+        const chapNum = parseInt(parts[parts.length - 2], 10);
+        const num = parseInt(parts[parts.length - 1], 10);
+        if (!chaptersMap[chapNum]) chaptersMap[chapNum] = [];
+        chaptersMap[chapNum].push({ number: num, text: d.text });
+      }
+    });
+
+    const resultChapters = Object.keys(chaptersMap)
+      .map(n => parseInt(n, 10))
+      .sort((a, b) => a - b)
+      .map(c => ({ number: c, verses: chaptersMap[c] }));
+
+    const allVerses = resultChapters.flatMap(ch => ch.verses);
+    return {
+      book: datas[0].book || { name: bookName, abbrev: { pt: bookName, en: bookName }, author: '', chapters: 0, group: '', testament: '' },
+      chapters: resultChapters,
+      reference,
+      version: usedVersion.toUpperCase(),
+      versionName,
+      totalVerses: allVerses.length,
+      content: allVerses.map(v => v.text).join(' '),
+      text: allVerses.map(v => v.text).join(' '),
+    };
   } catch (error) {
     console.error('Erro ao buscar referência bíblica:', error);
     throw error;
