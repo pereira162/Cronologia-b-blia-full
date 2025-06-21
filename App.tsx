@@ -326,20 +326,9 @@ const App: React.FC = () => {
                 theme={currentTheme}
                 ariaLabel={showCharacterBarControls ? "Ocultar informações especiais" : "Mostrar informações especiais"}
               >
-                {/* Icon only button */}
-              </MaterialButton>
+                {/* Icon only button */}              </MaterialButton>
 
-              {/* Show/Hide Events in Timeline */}
-              <MaterialButton
-                variant="outlined"
-                size="small"
-                onClick={() => setShowEventsInTimeline(!showEventsInTimeline)}
-                icon={showEventsInTimeline ? <CalendarDaysIcon className="w-4 h-4" /> : <XMarkIcon className="w-4 h-4" />}
-                theme={currentTheme}
-                ariaLabel={showEventsInTimeline ? "Ocultar eventos na timeline" : "Mostrar eventos na timeline"}
-              >
-                {/* Icon only button */}
-              </MaterialButton>{/* Stick Year Ruler Button */}
+              {/* Stick Year Ruler Button */}
               <MaterialButton
                 variant="outlined"
                 size="small"
@@ -352,20 +341,8 @@ const App: React.FC = () => {
                 theme={currentTheme}
                 ariaLabel={isYearRulerSticky ? "Desafixar Régua de Anos" : "Fixar Régua de Anos"}
               >
-                {/* Icon only button */}
-              </MaterialButton>
-
-              {/* Time Comparison Button */}
-              <MaterialButton
-                variant={timeComparison.isActive ? "filled" : "outlined"}
-                size="small"
-                onClick={() => timeComparison.isActive ? clearTimeComparison() : setTimeComparison(prev => ({ ...prev, isActive: true }))}
-                icon={<CalculatorIcon className="w-4 h-4" />}
-                theme={currentTheme}
-                ariaLabel={timeComparison.isActive ? "Desativar comparação de tempo" : "Ativar comparação de tempo"}
-              >
-                {/* Icon only button */}
-              </MaterialButton>
+                {/* Icon only button */}              
+                </MaterialButton>
 
               {/* Fullscreen Button */}
               <MaterialButton
@@ -398,9 +375,8 @@ const App: React.FC = () => {
         ref={controlsHeaderRef}
         className={`shadow-lg transition-all duration-300 ease-in-out bg-theme-header-bg ${showControlsHeader ? 'max-h-[500px] opacity-100 px-3 md:px-4 py-2 md:py-3' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`} 
         style={{ zIndex: Z_INDICES.controlsHeader }}
-      >        <div className="container mx-auto">
-          {/* Time Comparison Results Display */}
-          {timeComparison.isActive && (
+      >        <div className="container mx-auto">          {/* Time Comparison Results Display - REMOVED */}
+          {false && (
             <div className="mb-4 p-3 rounded-lg bg-theme-card-bg border border-theme-border">
               <div className="flex justify-between items-center mb-2">
                 <h3 style={{ fontSize: getScaledFontSize('base') }} className="font-semibold text-theme-card-header">
@@ -479,7 +455,29 @@ const App: React.FC = () => {
                 </MaterialButton>                {isEventSelectorOpen && (
                   <div className="absolute left-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns, maxWidth: 'calc(100vw - 2rem)' }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Selecionar Eventos</h3>
-                    {groupedEvents.map(({ category, events: categoryEvents }) => ( 
+                    
+                    {/* Ocultar/Mostrar Eventos Button */}
+                    <div className="mb-4 p-3 border rounded" style={{ borderColor: 'var(--theme-border)' }}>
+                      <MaterialButton
+                        variant={showEventsInTimeline ? "filled" : "outlined"}
+                        size="small"
+                        onClick={() => {
+                          setShowEventsInTimeline(!showEventsInTimeline);
+                          if (!showEventsInTimeline) {
+                            // Se estamos mostrando eventos, limpar seleção
+                            setSelectedEventIds([]);
+                          }
+                        }}
+                        icon={showEventsInTimeline ? <CalendarDaysIcon className="w-4 h-4" /> : <XMarkIcon className="w-4 h-4" />}
+                        theme={currentTheme}
+                        className="w-full"
+                        ariaLabel={showEventsInTimeline ? "Ocultar eventos na timeline" : "Mostrar eventos na timeline"}
+                      >
+                        {showEventsInTimeline ? "Ocultar Todos os Eventos" : "Mostrar Eventos"}
+                      </MaterialButton>
+                    </div>
+                    
+                    {groupedEvents.map(({ category, events: categoryEvents }) => (
                       <div key={category} className="mb-3">
                         <h4 style={{ fontSize: getScaledFontSize('base')}} className={`capitalize font-medium mb-1 border-b pb-1 text-theme-accent border-b-theme-border`}>{category}</h4>
                         {categoryEvents.map(event => (
@@ -514,66 +512,6 @@ const App: React.FC = () => {
                   <div className="absolute right-0 mt-2 w-80 md:w-[32rem] border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns, right: '0', transform: 'translateX(0)', maxWidth: 'calc(100vw - 2rem)' }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Mostrar/Ocultar Personagens</h3>
                     
-                    {/* Two-column selection section */}
-                    <div className="mb-4 p-3 border rounded" style={{ borderColor: 'var(--theme-border)' }}>
-                      <h4 className="font-medium mb-2 text-theme-accent">Seleção de Intervalo:</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-theme-text font-medium">Personagem Inicial:</label>
-                          <select 
-                            value={selectedPersonRange.start || ''}
-                            onChange={(e) => setSelectedPersonRange(prev => ({ ...prev, start: e.target.value || null }))}
-                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text border-theme-border"
-                          >
-                            <option value="">Selecionar personagem inicial</option>
-                            {sortedVisiblePeople.map(person => (
-                              <option key={person.id} value={person.id}>{person.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-sm text-theme-text font-medium">Personagem Final:</label>
-                          <select 
-                            value={selectedPersonRange.end || ''}
-                            onChange={(e) => setSelectedPersonRange(prev => ({ ...prev, end: e.target.value || null }))}
-                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text border-theme-border"
-                          >
-                            <option value="">Selecionar personagem final</option>
-                            {sortedVisiblePeople.map(person => (
-                              <option key={person.id} value={person.id}>{person.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={() => {
-                            if (selectedPersonRange.start && selectedPersonRange.end) {
-                              const startIndex = sortedVisiblePeople.findIndex(p => p.id === selectedPersonRange.start);
-                              const endIndex = sortedVisiblePeople.findIndex(p => p.id === selectedPersonRange.end);
-                              const [minIndex, maxIndex] = [Math.min(startIndex, endIndex), Math.max(startIndex, endIndex)];
-                              
-                              const toHide = allPeople.filter(person => {
-                                const personIndex = sortedVisiblePeople.findIndex(p => p.id === person.id);
-                                return personIndex !== -1 && (personIndex < minIndex || personIndex > maxIndex);
-                              }).map(p => p.id);
-                              
-                              setHiddenCharacterIds(toHide);
-                            }
-                          }}
-                          className="flex-1 py-1 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                          disabled={!selectedPersonRange.start || !selectedPersonRange.end}
-                        >
-                          Ocultar Fora do Intervalo
-                        </button>
-                        <button
-                          onClick={() => setSelectedPersonRange({ start: null, end: null })}
-                          className="py-1 px-3 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-                        >
-                          Limpar
-                        </button>
-                      </div>
-                    </div>                    
                     <MaterialButton
                       variant="filled"
                       size="small"

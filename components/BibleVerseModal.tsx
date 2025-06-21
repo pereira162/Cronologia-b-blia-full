@@ -176,10 +176,26 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
               <div className="space-y-6">
                 {currentReference.chapters.map((chapter, chapterIndex) => (
                   <div key={chapterIndex}>
+                    {/* Cabeçalho do capítulo */}
+                    <div className="mb-4 p-3 rounded-lg bg-theme-accent/10 border border-theme-accent/20">
+                      <h4 className="text-lg font-semibold text-theme-accent mb-1">
+                        {currentReference.book.name} - Capítulo {chapter.number}
+                      </h4>
+                      <p className="text-sm text-theme-text opacity-75">
+                        {chapter.verses.length} versículo{chapter.verses.length > 1 ? 's' : ''} • {currentReference.version.toUpperCase()}
+                      </p>
+                      {currentReference.book.author && (
+                        <p className="text-sm text-theme-text opacity-75 mt-1">
+                          Autor: {currentReference.book.author} • {currentReference.book.group}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Versículos */}
                     <div className="p-4 rounded-xl bg-theme-app-bg border border-theme-border">
                       {chapter.verses.map((verse, verseIndex) => (
                         <div key={verseIndex} className="mb-3 last:mb-0">
-                          <p className="text-lg text-theme-text leading-relaxed mb-2">
+                          <p className="text-lg text-theme-text leading-relaxed">
                             <span className="font-bold text-theme-accent mr-2">
                               {verse.number}
                             </span>
@@ -187,19 +203,6 @@ export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
                           </p>
                         </div>
                       ))}
-                      <div className="flex justify-between items-center mt-4 pt-3 border-t border-theme-border">
-                        <span className="font-semibold text-theme-accent">
-                          {currentReference.book.name} {chapter.number}
-                        </span>
-                        <span className="text-sm text-theme-text opacity-75">
-                          {selectedVersion.toUpperCase()}
-                        </span>
-                      </div>
-                      {currentReference.book.author && (
-                        <p className="mt-2 text-sm text-theme-text opacity-75">
-                          Autor: {currentReference.book.author} • {currentReference.book.group}
-                        </p>
-                      )}
                     </div>
                   </div>
                 ))}

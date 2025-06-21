@@ -239,28 +239,46 @@ export async function getVerseByReference(reference: string): Promise<BibleRefer
     }    const bookName = parts[0];
     const chapterVerse = parts[1];
     
-    if (!chapterVerse.includes(':')) {
-      throw new Error(`Formato de referência inválido: ${reference}`);
+    // Verificar se é capítulo inteiro ou versículo específico
+    let chapter: string;
+    let verse: string | undefined;
+    
+    if (chapterVerse.includes(':')) {
+      // Versículo específico (ex: "3:16")
+      [chapter, verse] = chapterVerse.split(':');
+    } else {
+      // Capítulo inteiro (ex: "3")
+      chapter = chapterVerse;
+      verse = undefined;
     }
-
-    const [chapter, verse] = chapterVerse.split(':');
     
     // Validar componentes
-    if (!bookName || !chapter || !verse) {
+    if (!bookName || !chapter) {
       throw new Error(`Componentes da referência inválidos: ${reference}`);
     }
 
     // Mapear nome do livro para abreviação da API
     const normalizedBookName = bookName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const bookAbbrev = BOOK_MAPPING[normalizedBookName] || BOOK_MAPPING[bookName.toLowerCase()] || bookName.toLowerCase();
-
-    const chapterNum = parseInt(chapter);
-    const verseNum = parseInt(verse);
+    const bookAbbrev = BOOK_MAPPING[normalizedBookName] || BOOK_MAPPING[bookName.toLowerCase()] || bookName.toLowerCase();    const chapterNum = parseInt(chapter);
+    const verseNum = verse ? parseInt(verse) : undefined;
     
-    if (isNaN(chapterNum) || isNaN(verseNum) || chapterNum < 1 || verseNum < 1) {
-      throw new Error(`Números de capítulo ou versículo inválidos: ${reference}`);
-    }    // Construir URL segura com abreviação do livro
-    const endpoint = `${BIBLE_API_URL}/verses/nvi/${bookAbbrev}/${chapterNum}/${verseNum}`;
+    if (isNaN(chapterNum) || chapterNum < 1) {
+      throw new Error(`Número de capítulo inválido: ${reference}`);
+    }
+    
+    if (verse && (isNaN(verseNum!) || verseNum! < 1)) {
+      throw new Error(`Número de versículo inválido: ${reference}`);
+    }
+
+    // Construir URL baseada no tipo de consulta
+    let endpoint: string;
+    if (verse) {
+      // Versículo específico
+      endpoint = `${BIBLE_API_URL}/verses/nvi/${bookAbbrev}/${chapterNum}/${verseNum}`;
+    } else {
+      // Capítulo inteiro
+      endpoint = `${BIBLE_API_URL}/books/nvi/${bookAbbrev}/${chapterNum}`;
+    }
     
     const response = await fetch(endpoint, {
       headers: {
@@ -271,38 +289,70 @@ export async function getVerseByReference(reference: string): Promise<BibleRefer
 
     if (!response.ok) {
       throw new Error(`Erro HTTP ao buscar referência: ${response.status} - ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    }    const data = await response.json();
     
     // Verificar se a resposta tem o formato esperado
-    if (!data || !data.text) {
+    if (!data) {
       throw new Error('Resposta da API inválida ou vazia');
     }
     
-    // Adaptar resposta para o formato esperado
-    return {
-      book: data.book || { 
-        name: bookName, 
-        abbrev: { pt: bookName, en: bookName },
-        author: '',
-        chapters: 0,
-        group: '',
-        testament: ''
-      },
-      chapters: [{
-        number: chapterNum,
-        verses: [{
-          number: verseNum,
-          text: data.text
-        }]
-      }],
-      reference: reference,
-      version: 'NVI',
-      totalVerses: 1,
-      content: data.text,
-      text: data.text
-    };
+    // Adaptar resposta baseada no tipo de consulta
+    if (verse) {
+      // Versículo específico
+      if (!data.text) {
+        throw new Error('Versículo não encontrado');
+      }
+      
+      return {
+        book: data.book || { 
+          name: bookName, 
+          abbrev: { pt: bookName, en: bookName },
+          author: '',
+          chapters: 0,
+          group: '',
+          testament: ''
+        },
+        chapters: [{
+          number: chapterNum,
+          verses: [{
+            number: verseNum!,
+            text: data.text
+          }]
+        }],
+        reference: reference,
+        version: 'NVI',
+        totalVerses: 1,
+        content: data.text,
+        text: data.text
+      };
+    } else {
+      // Capítulo inteiro
+      if (!data.verses || !Array.isArray(data.verses)) {
+        throw new Error('Capítulo não encontrado');
+      }
+      
+      return {
+        book: data.book || { 
+          name: bookName, 
+          abbrev: { pt: bookName, en: bookName },
+          author: '',
+          chapters: 0,
+          group: '',
+          testament: ''
+        },
+        chapters: [{
+          number: chapterNum,
+          verses: data.verses.map((v: any) => ({
+            number: v.number || v.verse,
+            text: v.text
+          }))
+        }],        reference: reference,
+        version: 'NVI',
+        totalVerses: data.verses.length,
+        content: data.verses.map((v: any) => v.text).join(' '),
+        text: data.verses.map((v: any) => v.text).join(' ')
+      };
+    }
   } catch (error) {
     console.error('Erro ao buscar referência bíblica:', error);
     throw error;
