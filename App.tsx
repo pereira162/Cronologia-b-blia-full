@@ -7,7 +7,7 @@
 // ATUALIZADO: Material Design 3 - Novos componentes visuais e sistema de temas
 
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Person, BibleEvent, YearReferenceMode, EventCategory, EventCardPosition, TimeComparisonState, TimeComparisonItem, TimeComparisonResult } from './types';
+import { Person, BibleEvent, YearReferenceMode, EventCategory, TimeComparisonState, TimeComparisonItem, TimeComparisonResult } from './types';
 import { useOnClickOutside, useFontSize } from './hooks';
 import { peopleData, eventsData } from './data'; 
 import { useMaterialTheme } from './utils/materialThemeProvider';
@@ -28,9 +28,8 @@ import {
 import TimelineView from './components/TimelineView';
 import CharacterCard from './components/CharacterCard';
 import EventCard from './components/EventCard';
-import { MaterialButton, FontSizeControl, BibleVerseModal, ConsoleMonitor, ErrorBoundary, ErrorDisplay } from './components';
-import { useBibleDigitalApi } from './hooks/useBibleDigitalApi';
-import { useDebugLogger } from './hooks/useDebugLogger';
+import { MaterialButton, FontSizeControl, BibleVerseModal } from './components';
+import { useBibleApi } from './hooks/useBibleApi';
 import { Z_INDICES, MIN_HORIZONTAL_SCALE, MAX_HORIZONTAL_SCALE, MIN_VERTICAL_SCALE, MAX_VERTICAL_SCALE, MIN_GLOBAL_UI_SCALE, MAX_GLOBAL_UI_SCALE } from './stylingConstants';
 
 // --- Ícones Helper --- (Old icon components removed)
@@ -74,38 +73,23 @@ const App: React.FC = () => {
   const [yearReferenceMode, setYearReferenceMode] = useState<YearReferenceMode>('AC');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);  const [selectedEvent, setSelectedEvent] = useState<BibleEvent | null>(null);
   const [isFontSizeControlOpen, setIsFontSizeControlOpen] = useState(false);
-  const [isYearRulerSticky, setIsYearRulerSticky] = useState(true);  const [bibleVerseModal, setBibleVerseModal] = useState<{ isOpen: boolean; reference: string }>({ isOpen: false, reference: '' });  const [eventCardPositions, setEventCardPositions] = useState<Record<string, EventCardPosition>>({});  const [selectedPersonRange, setSelectedPersonRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isConsoleMonitorVisible, setIsConsoleMonitorVisible] = useState(false);
-  const [errorCount, setErrorCount] = useState(0);
-    // Hook para a nova API da Bíblia Digital
-  const { createUser: createBibleUser, loading: bibleLoading } = useBibleDigitalApi();
-    // Sistema de debug logging
-  const debugLogger = useDebugLogger();
+  const [isYearRulerSticky, setIsYearRulerSticky] = useState(true);
+  const [bibleVerseModal, setBibleVerseModal] = useState<{ isOpen: boolean; reference: string }>({ isOpen: false, reference: '' });
+  const [selectedPersonRange, setSelectedPersonRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
+  const [isFullscreen, setIsFullscreen] = useState(false);  // Hook para a nova API da Bíblia Digital - apenas para log inicial
+  const { error: bibleApiError } = useBibleApi();
   
   const [timeComparison, setTimeComparison] = useState<TimeComparisonState>({ item1: null, item2: null, isActive: false });
 
-  // Funções para o sistema de monitoramento de erros
-  const toggleConsoleMonitor = useCallback(() => {
-    setIsConsoleMonitorVisible(!isConsoleMonitorVisible);
-  }, [isConsoleMonitorVisible]);
-  const handleErrorCountChange = useCallback((count: number) => {
-    setErrorCount(count);
-  }, []);
-  // Função para testar a criação de usuário na API da Bíblia
-  const handleCreateBibleUser = useCallback(async () => {
-    try {
-      await createBibleUser();
-      debugLogger.log('info', 'Usuário da API da Bíblia criado com sucesso');
-    } catch (err) {
-      debugLogger.error('Erro ao criar usuário da API da Bíblia', err instanceof Error ? err : new Error(String(err)));
-    }
-  }, [createBibleUser, debugLogger]);
-
   // Log inicial quando o app carrega
   useEffect(() => {
-    console.log('🚀 App carregado - Sistema de monitoramento de console ativo');
-    debugLogger.log('info', 'App inicializado com sistema de debugging');
-  }, [debugLogger]);
+    console.log('🚀 App carregado - API da Bíblia Digital integrada');
+    
+    // Log do erro da API se houver
+    if (bibleApiError) {
+      console.error('❌ Erro na API da Bíblia:', bibleApiError);
+    }
+  }, [bibleApiError]);
   const fontSizeControlRef = useOnClickOutside<HTMLDivElement>(() => setIsFontSizeControlOpen(false));
 
   // Fullscreen toggle function
@@ -156,8 +140,8 @@ const App: React.FC = () => {
 
   const [hiddenCharacterIds, setHiddenCharacterIds] = useState<string[]>([]);  const [isPersonVisibilityPanelOpen, setIsPersonVisibilityPanelOpen] = useState(false);
   const personVisibilityPanelRef = useOnClickOutside<HTMLDivElement>(() => setIsPersonVisibilityPanelOpen(false));
-
   const [showCharacterBarControls, setShowCharacterBarControls] = useState(true);
+  const [showEventsInTimeline, setShowEventsInTimeline] = useState(true);
   const [activePersonLifeLines, setActivePersonLifeLines] = useState<Record<string, boolean>>({});
   const [showControlsHeader, setShowControlsHeader] = useState(false);
   const controlsHeaderRef = useRef<HTMLElement>(null);
@@ -245,25 +229,10 @@ const App: React.FC = () => {
         ? prevSelectedIds.filter((id: string) => id !== eventId)
         : [...prevSelectedIds, eventId]
     );
-  }, []);
-  const handleBibleReferenceClick = useCallback((reference: string) => {
+  }, []);  const handleBibleReferenceClick = useCallback((reference: string) => {
     setBibleVerseModal({ isOpen: true, reference });
   }, []);
 
-  const handleEventCardPositionChange = useCallback((eventId: string, position: Partial<EventCardPosition>) => {
-    setEventCardPositions((prev: Record<string, EventCardPosition>) => ({
-      ...prev,
-      [eventId]: {
-        ...prev[eventId],
-        eventId,
-        x: 0, // Default x position
-        y: 100, // Default y position
-        alignment: 'center', // Default alignment
-        isDragging: false,
-        ...position
-      }
-    }));
-  }, []);
   const closeBibleVerseModal = useCallback(() => {
     setBibleVerseModal({ isOpen: false, reference: '' });
   }, []);
@@ -310,10 +279,8 @@ const App: React.FC = () => {
     };
     return `${fontSize.baseSize * scaleMap[scale] * fontSize.multiplier}px`;
   };
-
   return (
-    <ErrorBoundary>
-      <div className="flex flex-col h-screen bg-theme-app-bg text-theme-text">
+    <div className="flex flex-col h-screen bg-theme-app-bg text-theme-text">
       {/* Top bar with Title and Control Buttons */}
       <div className="shadow-sm border-b bg-theme-header-bg border-theme-border" style={{ zIndex: Z_INDICES.topHeader }}>
         <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
@@ -350,9 +317,7 @@ const App: React.FC = () => {
                 ariaLabel={effectiveTheme === 'dark' ? "Trocar para Claro Clássico" : "Trocar para Escuro Moderno (Padrão)"}
               >
                 {/* Icon only button */}
-              </MaterialButton>
-
-              {/* Show/Hide Character Bar Controls */}
+              </MaterialButton>              {/* Show/Hide Character Bar Controls */}
               <MaterialButton
                 variant="outlined"
                 size="small"
@@ -362,7 +327,19 @@ const App: React.FC = () => {
                 ariaLabel={showCharacterBarControls ? "Ocultar informações especiais" : "Mostrar informações especiais"}
               >
                 {/* Icon only button */}
-              </MaterialButton>              {/* Stick Year Ruler Button */}
+              </MaterialButton>
+
+              {/* Show/Hide Events in Timeline */}
+              <MaterialButton
+                variant="outlined"
+                size="small"
+                onClick={() => setShowEventsInTimeline(!showEventsInTimeline)}
+                icon={showEventsInTimeline ? <CalendarDaysIcon className="w-4 h-4" /> : <XMarkIcon className="w-4 h-4" />}
+                theme={currentTheme}
+                ariaLabel={showEventsInTimeline ? "Ocultar eventos na timeline" : "Mostrar eventos na timeline"}
+              >
+                {/* Icon only button */}
+              </MaterialButton>{/* Stick Year Ruler Button */}
               <MaterialButton
                 variant="outlined"
                 size="small"
@@ -410,50 +387,7 @@ const App: React.FC = () => {
                 theme={currentTheme}
                 ariaLabel={showControlsHeader ? "Ocultar Configurações" : "Mostrar Configurações"}
               >
-                {/* Icon only button */}
-              </MaterialButton>
-
-              {/* Botão Console Monitor com Badge de Erro */}
-              <div className="relative">
-                <MaterialButton
-                  variant={isConsoleMonitorVisible ? "filled" : "outlined"}
-                  size="medium"
-                  onClick={toggleConsoleMonitor}
-                  theme={currentTheme}
-                  ariaLabel={isConsoleMonitorVisible ? "Fechar Monitor do Console" : "Abrir Monitor do Console"}
-                >
-                  🖥️ Console
-                </MaterialButton>
-                {errorCount > 0 && (
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {errorCount}
-                  </div>
-                )}
-              </div>{/* Teste de Erro - Debugging */}
-              <MaterialButton
-                variant="outlined"
-                size="small"
-                onClick={() => {
-                  console.error('🧪 Teste de erro manual disparado');
-                  throw new Error('Erro de teste para debugging');
-                }}
-                theme={currentTheme}
-                ariaLabel="Forçar erro para teste do sistema de debugging"
-              >
-                🧪 Erro Teste
-              </MaterialButton>
-
-              {/* API da Bíblia Digital - Teste de Criação de Usuário */}
-              <MaterialButton
-                variant="outlined"
-                size="small"
-                onClick={handleCreateBibleUser}
-                theme={currentTheme}
-                ariaLabel="Criar usuário na API da Bíblia Digital"
-                disabled={bibleLoading}
-              >
-                {bibleLoading ? 'Criando...' : 'Testar API Bíblia'}
-              </MaterialButton>
+                {/* Icon only button */}              </MaterialButton>
             </div>
           </div>
         </div>
@@ -577,19 +511,19 @@ const App: React.FC = () => {
                 >
                   {isPersonVisibilityPanelOpen ? <ChevronUpHeroIcon className="w-4 h-4 ml-1" /> : <ChevronDownHeroIcon className="w-4 h-4 ml-1" />}
                 </MaterialButton>                {isPersonVisibilityPanelOpen && (
-                  <div className="absolute right-0 mt-2 w-72 md:w-96 border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border transform -translate-x-full md:translate-x-0" style={{ zIndex: Z_INDICES.dropdowns, maxWidth: 'calc(100vw - 2rem)' }}>
+                  <div className="absolute right-0 mt-2 w-80 md:w-[32rem] border rounded-md shadow-lg p-4 max-h-96 overflow-y-auto bg-theme-card-bg border-theme-border" style={{ zIndex: Z_INDICES.dropdowns, right: '0', transform: 'translateX(0)', maxWidth: 'calc(100vw - 2rem)' }}>
                     <h3 style={{ fontSize: getScaledFontSize('lg') }} className={`font-semibold mb-3 text-theme-card-header`}>Mostrar/Ocultar Personagens</h3>
                     
-                    {/* Range Selection Section */}
+                    {/* Two-column selection section */}
                     <div className="mb-4 p-3 border rounded" style={{ borderColor: 'var(--theme-border)' }}>
-                      <h4 className="font-medium mb-2 text-theme-accent">Mostrar Apenas Entre Dois Personagens:</h4>
-                      <div className="space-y-2">
+                      <h4 className="font-medium mb-2 text-theme-accent">Seleção de Intervalo:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm text-theme-text">De:</label>
+                          <label className="text-sm text-theme-text font-medium">Personagem Inicial:</label>
                           <select 
                             value={selectedPersonRange.start || ''}
                             onChange={(e) => setSelectedPersonRange(prev => ({ ...prev, start: e.target.value || null }))}
-                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text"
+                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text border-theme-border"
                           >
                             <option value="">Selecionar personagem inicial</option>
                             {sortedVisiblePeople.map(person => (
@@ -598,11 +532,11 @@ const App: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="text-sm text-theme-text">Até:</label>
+                          <label className="text-sm text-theme-text font-medium">Personagem Final:</label>
                           <select 
                             value={selectedPersonRange.end || ''}
                             onChange={(e) => setSelectedPersonRange(prev => ({ ...prev, end: e.target.value || null }))}
-                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text"
+                            className="w-full mt-1 text-sm border rounded px-2 py-1 bg-theme-card-bg text-theme-text border-theme-border"
                           >
                             <option value="">Selecionar personagem final</option>
                             {sortedVisiblePeople.map(person => (
@@ -610,6 +544,8 @@ const App: React.FC = () => {
                             ))}
                           </select>
                         </div>
+                      </div>
+                      <div className="mt-3 flex gap-2">
                         <button
                           onClick={() => {
                             if (selectedPersonRange.start && selectedPersonRange.end) {
@@ -625,13 +561,19 @@ const App: React.FC = () => {
                               setHiddenCharacterIds(toHide);
                             }
                           }}
-                          className="w-full py-1 px-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                          className="flex-1 py-1 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          disabled={!selectedPersonRange.start || !selectedPersonRange.end}
                         >
-                          Aplicar Seleção
+                          Ocultar Fora do Intervalo
+                        </button>
+                        <button
+                          onClick={() => setSelectedPersonRange({ start: null, end: null })}
+                          className="py-1 px-3 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                        >
+                          Limpar
                         </button>
                       </div>
-                    </div>
-                    
+                    </div>                    
                     <MaterialButton
                       variant="filled"
                       size="small"
@@ -642,18 +584,22 @@ const App: React.FC = () => {
                     >
                       Mostrar Todos os Personagens
                     </MaterialButton>
-                    {peopleData.map(person => (
-                      <label key={person.id} className="flex items-center space-x-2 p-1 hover:opacity-75 rounded cursor-pointer text-theme-text">
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-4 w-4 rounded focus:ring-offset-0 focus:ring-2 input-checkbox-themed"
-                          style={{transform: `scale(${globalUiScale})`}}
-                          checked={!hiddenCharacterIds.includes(person.id)} 
-                          onChange={() => toggleCharacterVisibility(person.id)}
-                        />
-                        <span style={{fontSize: getScaledFontSize('sm')}} className={`${person.isCovenantLine ? 'font-semibold opacity-90' : 'opacity-70'}`}>{person.name}</span>
-                      </label>
-                    ))}
+                    
+                    {/* Lista de personagens em duas colunas */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
+                      {peopleData.map(person => (
+                        <label key={person.id} className="flex items-center space-x-2 p-1 hover:opacity-75 rounded cursor-pointer text-theme-text">
+                          <input
+                            type="checkbox"
+                            className="form-checkbox h-4 w-4 rounded focus:ring-offset-0 focus:ring-2 input-checkbox-themed flex-shrink-0"
+                            style={{transform: `scale(${globalUiScale})`}}
+                            checked={!hiddenCharacterIds.includes(person.id)} 
+                            onChange={() => toggleCharacterVisibility(person.id)}
+                          />
+                          <span style={{fontSize: getScaledFontSize('sm')}} className={`${person.isCovenantLine ? 'font-semibold opacity-90' : 'opacity-70'} truncate`}>{person.name}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -700,7 +646,8 @@ const App: React.FC = () => {
         </div> 
       </header>      <main 
         className="flex-grow overflow-hidden" 
-        style={{ position: 'relative' }}      >        <TimelineView 
+        style={{ position: 'relative' }}
+        ><TimelineView 
           people={peopleData}
           events={eventsData.filter(event => selectedEventIds.includes(event.id))}
           onSelectPerson={handleSelectPerson}
@@ -713,51 +660,34 @@ const App: React.FC = () => {
           hiddenCharacterIds={hiddenCharacterIds}
           onToggleCharacterVisibility={toggleCharacterVisibility}
           showCharacterBarControls={showCharacterBarControls}
+          showEventsInTimeline={showEventsInTimeline}
           activePersonLifeLines={activePersonLifeLines}
           onTogglePersonLifeLine={togglePersonLifeLine}
           onBibleReferenceClick={handleBibleReferenceClick}
           isYearRulerSticky={isYearRulerSticky}
-          eventCardPositions={eventCardPositions}
-          onEventCardPositionChange={handleEventCardPositionChange}
           timeComparison={timeComparison}
           onTimeComparisonItemSelect={handleTimeComparisonItemSelect}
         />
       </main>      <CharacterCard 
         person={selectedPerson} 
         onClose={closeCards} 
+        onSelectPerson={handleSelectPerson}
         onBibleReferenceClick={handleBibleReferenceClick}
-      />      <EventCard 
+      /><EventCard 
         event={selectedEvent} 
         onClose={closeCards} 
         onSelectPerson={handleSelectPerson}
         onBibleReferenceClick={handleBibleReferenceClick}
-      />
-
-      {/* Bible Verse Modal */}
+      />      {/* Bible Verse Modal */}
       <BibleVerseModal 
         isOpen={bibleVerseModal.isOpen}
         reference={bibleVerseModal.reference}
         onClose={closeBibleVerseModal}
         theme={currentTheme}
-      />      {/* Console Monitor para depuração em tempo real */}
-      <ConsoleMonitor
-        isVisible={isConsoleMonitorVisible}
-        onToggle={toggleConsoleMonitor}
-        onErrorCountChange={handleErrorCountChange}
-        theme={currentTheme}
-      />
-
-      {/* Error Display para debugging visual */}
-      <ErrorDisplay
-        theme={currentTheme}
-        onErrorsChange={handleErrorCountChange}
-      />
-
-      <footer className={`text-center p-3 bg-theme-header-bg text-theme-accent`} style={{ fontSize: getScaledFontSize('xs') }}>
+      />      <footer className={`text-center p-3 bg-theme-header-bg text-theme-accent`} style={{ fontSize: getScaledFontSize('xs') }}>
         Exploração Visual das Narrativas Fundacionais do Livro de Gênesis.
       </footer>
     </div>
-    </ErrorBoundary>
   );
 };
 

@@ -13,15 +13,41 @@ import { MaterialButton } from './MaterialButton';
 interface CharacterCardProps {
   person: Person | null; // O objeto Person a ser exibido, ou null se nenhum personagem estiver selecionado
   onClose: () => void;   // Função para fechar o card
+  onSelectPerson?: (person: Person) => void; // Função para selecionar outro personagem relacionado
   onBibleReferenceClick?: (reference: string) => void; // Função para abrir versículo bíblico
 }
 
-const CharacterCard: React.FC<CharacterCardProps> = ({ person, onClose, onBibleReferenceClick }) => {
+const CharacterCard: React.FC<CharacterCardProps> = ({ person, onClose, onSelectPerson, onBibleReferenceClick }) => {
   // Se não houver personagem selecionado (person é null), não renderiza nada.
   if (!person) return null;
-
   // Filtra os eventos bíblicos para encontrar aqueles que incluem o ID do personagem atual.
   const relatedEvents = eventsData.filter(event => event.characterIds.includes(person.id));
+  
+  // Helper functions to find family members
+  const findPersonById = (id: string): Person | undefined => {
+    return peopleData.find(p => p.id === id);
+  };
+
+  const renderFamilyMember = (personId: string) => {
+    const familyMember = findPersonById(personId);
+    if (!familyMember || !onSelectPerson) {
+      return <span>{familyMember?.name || personId}</span>;
+    }
+    
+    return (
+      <button
+        onClick={() => {
+          onClose(); // Fecha o card atual
+          onSelectPerson(familyMember); // Abre o card do membro da família
+        }}
+        className="md-interactive text-blue-600 hover:text-blue-800 underline"
+        title={`Ver perfil de ${familyMember.name}`}
+      >
+        {familyMember.name}
+      </button>
+    );
+  };
+
   // Helper function to create clickable Bible references
   const renderBibleReference = (reference: string) => {
     if (!reference || !onBibleReferenceClick) {
@@ -84,14 +110,46 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ person, onClose, onBibleR
           {person.deathYear !== undefined && <div><strong className="text-theme-accent">Morte (Relativo Adão=0):</strong> Ano {person.deathYear}</div>}
           {person.totalLifespan !== undefined && <div><strong className="text-theme-accent">Tempo de Vida:</strong> {person.totalLifespan} anos</div>}
           {person.ageAtParenthood !== undefined && <div><strong className="text-theme-accent">Idade ao gerar filho principal:</strong> {person.ageAtParenthood} anos</div>}
-        </div>
-
-        {/* Descrição do personagem, se disponível */}
+        </div>        {/* Descrição do personagem, se disponível */}
         {person.description && <p className="mb-4 p-3 rounded bg-theme-app-bg text-theme-text md-body-medium">{person.description}</p>}
         
-        {/* Informações sobre o pai (poderia ser expandido para outros familiares) */}
-        {person.fatherId && <p className="md-body-medium"><strong className="text-theme-accent">Pai:</strong> {peopleData.find(p => p.id === person.fatherId)?.name || person.fatherId}</p>}
-        {/* TODO: Adicionar mãe, cônjuges, filhos com links/botões para abrir seus respectivos cards */}        {/* Lista de eventos chave relacionados ao personagem */}
+        {/* Informações sobre família com links clicáveis */}
+        <div className="mb-4 space-y-2 md-body-medium">          {person.fatherId && (
+            <p>
+              <strong className="text-theme-accent">Pai:</strong> {renderFamilyMember(person.fatherId)}
+            </p>
+          )}
+          
+          {person.motherId && (
+            <p>
+              <strong className="text-theme-accent">Mãe:</strong> {renderFamilyMember(person.motherId)}
+            </p>
+          )}
+          
+          {person.spouseIds && person.spouseIds.length > 0 && (
+            <p>
+              <strong className="text-theme-accent">Cônjuge{person.spouseIds.length > 1 ? 's' : ''}:</strong>{' '}
+              {person.spouseIds.map((spouseId, index) => (
+                <span key={spouseId}>
+                  {index > 0 && ', '}
+                  {renderFamilyMember(spouseId)}
+                </span>
+              ))}
+            </p>
+          )}
+          
+          {person.childrenIds && person.childrenIds.length > 0 && (
+            <p>
+              <strong className="text-theme-accent">Filhos:</strong>{' '}
+              {person.childrenIds.map((childId, index) => (
+                <span key={childId}>
+                  {index > 0 && ', '}
+                  {renderFamilyMember(childId)}
+                </span>
+              ))}
+            </p>
+          )}
+        </div>{/* Lista de eventos chave relacionados ao personagem */}
         {relatedEvents.length > 0 && (
           <div className="mt-4">
             <h3 className="md-title-large font-semibold mb-2 text-theme-card-header">Eventos Chave:</h3>            <ul className="list-disc list-inside space-y-1 md-body-medium">

@@ -2,9 +2,6 @@
 // Este arquivo define as interfaces e tipos TypeScript usados em toda a aplicação
 // para garantir a consistência e a segurança dos dados.
 
-// Exportar novos tipos para cards de eventos
-export type { EventCardPosition, EventCardInteraction } from './types/eventCard';
-
 // Interface para representar um personagem bíblico.
 export interface Person {
   id: string; 
@@ -104,15 +101,13 @@ export interface TimelineViewProps {
   personBarPalette: string[];
   horizontalScale: number; // Escala horizontal base (do slider)
   verticalScale: number;   // Escala vertical base (do slider)
-  globalUiScale: number;   // Escala global da UI (do slider)
+  globalUiScale: number;   // Escala global da UI (do slider)  
   hiddenCharacterIds: string[];
   onToggleCharacterVisibility: (personId: string) => void;  showCharacterBarControls: boolean;
+  showEventsInTimeline: boolean;
   activePersonLifeLines: Record<string, boolean>;
-  onTogglePersonLifeLine: (personId: string) => void;
-  onBibleReferenceClick?: (reference: string) => void; // Optional for bible verse modal
+  onTogglePersonLifeLine: (personId: string) => void;  onBibleReferenceClick?: (reference: string) => void; // Optional for bible verse modal
   isYearRulerSticky?: boolean; // Optional prop for controlling year ruler stickiness from parent
-  eventCardPositions: Record<string, EventCardPosition>;
-  onEventCardPositionChange: (eventId: string, position: Partial<EventCardPosition>) => void;
   timeComparison?: TimeComparisonState; // Optional time comparison state
   onTimeComparisonItemSelect?: (item: TimeComparisonItem) => void; // Optional time comparison handler
 }

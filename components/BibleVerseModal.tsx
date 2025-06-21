@@ -1,238 +1,257 @@
 // BibleVerseModal.tsx
 // Material Design 3 Modal component for displaying Bible verses
-// Follows Material Design 3 guidelines for dialogs and modals
 // Updated to use the new Bible Digital API
 
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useBibleDigitalApi } from '../hooks/useBibleDigitalApi';
+import { useBibleApi } from '../hooks/useBibleApi';
 
 interface BibleVerseModalProps {
   isOpen: boolean;
   onClose: () => void;
   reference?: string;
-  theme: any; // Will be properly typed when theme system is updated
+  theme?: any; // Made optional since it's not currently used
 }
 
 export const BibleVerseModal: React.FC<BibleVerseModalProps> = ({
   isOpen,
   onClose,
-  reference,
-  theme
+  reference
 }) => {
-  const { content, loading, error, fetchVerse, getAvailableTranslations } = useBibleDigitalApi();
-  const [selectedTranslation, setSelectedTranslation] = React.useState('nvi');
-  const availableTranslations = getAvailableTranslations();
+  const [selectedVersion, setSelectedVersion] = React.useState('nvi');
+  const { loading, error, currentReference, fetchByReference } = useBibleApi();
 
+  // Versões disponíveis da Bíblia
+  const availableVersions = [
+    { id: 'nvi', name: 'Nova Versão Internacional (NVI)' },
+    { id: 'acf', name: 'Almeida Corrigida Fiel (ACF)' },
+    { id: 'naa', name: 'Nova Almeida Atualizada (NAA)' },
+    { id: 'aa', name: 'Almeida Antiga (AA)' }
+  ];
+  // Buscar conteúdo quando modal abrir ou referência/versão mudar
   React.useEffect(() => {
     if (isOpen && reference) {
-      fetchVerse(reference, selectedTranslation as any);
+      fetchByReference(reference, selectedVersion);
     }
-  }, [isOpen, reference, selectedTranslation, fetchVerse]);
-
-  const handleTranslationChange = (translationId: string) => {
-    setSelectedTranslation(translationId);
+  }, [isOpen, reference, selectedVersion, fetchByReference]);
+  const handleVersionChange = (versionId: string) => {
+    setSelectedVersion(versionId);
     if (reference) {
-      fetchVerse(reference, translationId as any);
+      fetchByReference(reference, versionId);
     }
   };
 
-  if (!isOpen) return null;
+  // Fechar modal ao pressionar ESC
+  React.useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);  if (!isOpen) return null;
+
+  // Função para renderizar conteúdo de um versículo
+  const renderVerse = (verse: any, showNumber: boolean = true) => (
+    <div key={verse.number || verse.verse} className="flex space-x-3">
+      {showNumber && (
+        <span className="font-bold text-theme-accent mt-1 min-w-[2rem] text-sm">
+          {verse.number || verse.verse}
+        </span>
+      )}
+      <p className="text-theme-text leading-relaxed">
+        {verse.text}
+      </p>
+    </div>
+  );
+
+  // Função para renderizar capítulo
+  const renderChapter = (chapter: any) => (
+    <div className="space-y-4">
+      <div className="border-b border-theme-border pb-3">
+        <h3 className="text-xl font-semibold text-theme-header-text">
+          {chapter.book.name} - Capítulo {chapter.chapter.number}
+        </h3>
+        <p className="text-sm text-theme-text opacity-75">
+          {chapter.chapter.verses} versículos • {chapter.book.author}
+        </p>
+      </div>
+      
+      <div className="space-y-3 max-h-96 overflow-y-auto">
+        {chapter.verses.map((verse: any) => renderVerse(verse))}
+      </div>
+      
+      <div className="border-t border-theme-border pt-3">
+        <span className="text-sm text-theme-text opacity-75">
+          {selectedVersion.toUpperCase()} • {chapter.book.group}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 1000 }}>
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
       
       {/* Modal */}
       <div 
-        className="relative w-full max-w-2xl max-h-[90vh] mx-4 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
-        style={{ 
-          backgroundColor: theme.colors.surface,
-          color: theme.colors.onSurface 
-        }}
-      >        {/* Header */}        <div className="flex items-center justify-between p-6 pb-4 border-b" style={{ borderColor: theme.colors.outline }}>
-          <div className="flex-1">
-            <h2 className="md-title-large text-theme-card-header mb-2">
-              {reference || 'Versículo Bíblico'}
-            </h2>
-            
-            {/* Translation Selector */}
-            <select 
-              value={selectedTranslation}
-              onChange={(e) => handleTranslationChange(e.target.value)}
-              className="text-sm border rounded px-2 py-1"
-              style={{ 
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outline,
-                color: theme.colors.onSurface
-              }}
+        className="relative bg-theme-card-bg rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bible-modal-title"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-theme-border">
+          <h2 id="bible-modal-title" className="text-xl font-semibold text-theme-header-text">
+            {reference || 'Versículo Bíblico'}
+          </h2>
+          
+          <div className="flex items-center space-x-4">
+            {/* Seletor de versão */}
+            <select
+              value={selectedVersion}
+              onChange={(e) => handleVersionChange(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-theme-border bg-theme-card-bg text-theme-text focus:border-theme-accent focus:outline-none"
             >
-              {availableTranslations.map(translation => (
-                <option key={translation.id} value={translation.id}>
-                  {translation.name} ({translation.language})
+              {availableVersions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  {version.id.toUpperCase()}
                 </option>
               ))}
             </select>
+            
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full transition-colors duration-200 text-theme-text hover:text-theme-accent hover:bg-theme-app-bg"
+              aria-label="Fechar"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
           </div>
-          
-          <button
-            onClick={onClose}
-            className="md-interactive p-2 rounded-full transition-colors duration-200 text-theme-text hover:text-theme-accent"
-            aria-label="Fechar"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
         </div>
         
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">{loading && (
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading && (
             <div className="flex items-center justify-center py-8">
-              <div 
-                className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: theme.colors.primary }}
-              />
-              <span 
-                className="ml-3 md-body-medium text-theme-text"
-              >
+              <div className="w-8 h-8 border-4 border-t-transparent border-theme-accent rounded-full animate-spin" />
+              <span className="ml-3 text-theme-text">
                 Carregando versículo...
               </span>
             </div>
-          )}            {error && (
-            <div 
-              className="p-4 rounded-xl"
-              style={{ 
-                backgroundColor: theme.colors.errorContainer,
-                color: theme.colors.onErrorContainer 
-              }}
-            >
-              <p className="md-body-medium">
-                Erro ao carregar versículo: {error}
-              </p>
-              <p 
-                className="mt-2 md-label-medium"
-                style={{ 
-                  color: theme.colors.onErrorContainer 
-                }}
-              >
+          )}
+
+          {error && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800">
+              <p className="font-medium">Erro ao carregar versículo:</p>
+              <p className="mt-1">{error}</p>
+              <p className="mt-2 text-sm text-red-600">
                 Verifique a referência e tente novamente.
               </p>
             </div>
-          )}
-            {content && (
+          )}          {currentReference && (
             <div className="space-y-4">
-              {/* Informações da versão */}
-              {content.version && (
-                <p 
-                  className="md-label-medium text-theme-text"
-                >
-                  {availableTranslations.find(t => t.id === content.version)?.name || content.version.toUpperCase()}
+              {/* Cabeçalho da referência */}
+              <div className="border-b border-theme-border pb-3">                <h3 className="text-xl font-semibold text-theme-header-text">
+                  {currentReference.book.name}
+                </h3>
+                <p className="text-sm text-theme-text opacity-75">
+                  {currentReference.totalVerses || 1} versículo{(currentReference.totalVerses || 1) > 1 ? 's' : ''} • {currentReference.book.author || 'Autor desconhecido'}
                 </p>
-              )}
-              
-              {/* Versículo único */}
-              {content.type === 'verse' && content.verse && (
-                <div 
-                  className="p-4 rounded-xl leading-relaxed md-body-large"
-                  style={{ 
-                    backgroundColor: theme.colors.surfaceContainer,
-                    color: theme.colors.onSurface
-                  }}
-                >
-                  <p className="mb-2">{content.verse.text}</p>
-                  <p 
-                    className="text-right font-medium md-label-large"
-                    style={{ 
-                      color: theme.colors.primary 
-                    }}
-                  >
-                    {content.verse.book.name} {content.verse.chapter.number}:{content.verse.number}
-                  </p>
-                </div>
-              )}
-
-              {/* Capítulo completo ou range de versículos */}
-              {(content.type === 'chapter' || content.type === 'range') && content.chapter && (
-                <div 
-                  className="p-4 rounded-xl"
-                  style={{ 
-                    backgroundColor: theme.colors.surfaceContainer,
-                    color: theme.colors.onSurface
-                  }}
-                >
-                  <h3 className="font-bold text-lg mb-3" style={{ color: theme.colors.primary }}>
-                    {content.chapter.book.name} {content.chapter.chapter.number}
-                  </h3>
-                  <div className="space-y-2">
-                    {content.chapter.verses.map((verse) => (
-                      <p 
-                        key={verse.number}
-                        className="leading-relaxed md-body-medium"
-                      >
-                        <span className="font-semibold mr-2" style={{ color: theme.colors.primary }}>
-                          {verse.number}
+              </div>              {/* Conteúdo */}
+              <div className="space-y-6">
+                {currentReference.chapters.map((chapter, chapterIndex) => (
+                  <div key={chapterIndex}>
+                    <div className="p-4 rounded-xl bg-theme-app-bg border border-theme-border">
+                      {chapter.verses.map((verse, verseIndex) => (
+                        <div key={verseIndex} className="mb-3 last:mb-0">
+                          <p className="text-lg text-theme-text leading-relaxed mb-2">
+                            <span className="font-bold text-theme-accent mr-2">
+                              {verse.number}
+                            </span>
+                            "{verse.text}"
+                          </p>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center mt-4 pt-3 border-t border-theme-border">
+                        <span className="font-semibold text-theme-accent">
+                          {currentReference.book.name} {chapter.number}
                         </span>
-                        {verse.text}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Resultados de busca */}
-              {content.type === 'search' && content.verses && (
-                <div className="space-y-3">
-                  <p className="md-label-medium" style={{ color: theme.colors.primary }}>
-                    {content.verses.length} versículo(s) encontrado(s)
-                  </p>
-                  {content.verses.map((verse, index) => (
-                    <div 
-                      key={index}
-                      className="p-3 rounded-lg border-l-4"
-                      style={{ 
-                        backgroundColor: theme.colors.surfaceContainer,
-                        color: theme.colors.onSurface,
-                        borderLeftColor: theme.colors.primary
-                      }}
-                    >
-                      <p className="mb-1 leading-relaxed md-body-medium">{verse.text}</p>
-                      <p 
-                        className="text-sm font-medium"
-                        style={{ color: theme.colors.primary }}
-                      >
-                        {verse.book.name} {verse.chapter.number}:{verse.number}
-                      </p>
+                        <span className="text-sm text-theme-text opacity-75">
+                          {selectedVersion.toUpperCase()}
+                        </span>
+                      </div>
+                      {currentReference.book.author && (
+                        <p className="mt-2 text-sm text-theme-text opacity-75">
+                          Autor: {currentReference.book.author} • {currentReference.book.group}
+                        </p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Rodapé da referência */}
+              <div className="border-t border-theme-border pt-3">
+                <span className="text-sm text-theme-text opacity-75">
+                  {selectedVersion.toUpperCase()} • {currentReference.book.group}
+                </span>
+              </div>
+            </div>
+          )}          {!loading && !error && !currentReference && reference && (
+            <div className="text-center py-8">
+              <p className="text-theme-text opacity-75">
+                Nenhum resultado encontrado para "{reference}"
+              </p>
+              <p className="text-sm text-theme-text opacity-50 mt-2">
+                Tente referências como: "gn 1:1", "gn 1:1-5", "gn 1-3", "joão 3:16"
+              </p>
             </div>
           )}
-        </div>          {/* Actions */}
-        <div className="flex justify-end gap-2 p-6 pt-4 border-t" style={{ borderColor: theme.colors.outline }}>
-          <button
-            onClick={onClose}
-            className="md-interactive px-6 py-2 rounded-full font-medium transition-all duration-200 md-label-large"
-            style={{ 
-              backgroundColor: theme.colors.primary,
-              color: theme.colors.onPrimary
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.primaryContainer;
-              e.currentTarget.style.color = theme.colors.onPrimaryContainer;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.primary;
-              e.currentTarget.style.color = theme.colors.onPrimary;
-            }}
-          >
-            Fechar
-          </button>
+
+          {!reference && !loading && (
+            <div className="text-center py-8">
+              <p className="text-theme-text opacity-75">
+                Clique em uma referência bíblica para visualizar o versículo
+              </p>
+              <p className="text-sm text-theme-text opacity-50 mt-2">
+                Suporta: versículos únicos, sequências e capítulos completos
+              </p>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-theme-border">
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-theme-text opacity-50">
+              Fonte: A Bíblia Digital • abibliadigital.com.br
+            </p>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg bg-theme-accent text-white hover:opacity-90 transition-opacity"
+            >
+              Fechar
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default BibleVerseModal;

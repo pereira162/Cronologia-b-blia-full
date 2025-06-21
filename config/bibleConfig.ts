@@ -47,7 +47,7 @@ export const getAuthHeaders = (token?: string): Record<string, string> => {
 // Mapeamento de livros bíblicos (português -> abreviação)
 export const BOOK_ABBREVIATIONS: Record<string, string> = {
   // Antigo Testamento
-  'gênesis': 'gn', 'genesis': 'gn',
+  'gênesis': 'gn', 'genesis': 'gn', "Gênesis": 'gn', "Genesis": 'gn', 
   'êxodo': 'ex', 'exodo': 'ex',
   'levítico': 'lv', 'levitico': 'lv',
   'números': 'nm', 'numeros': 'nm',

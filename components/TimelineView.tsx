@@ -3,7 +3,7 @@
 // incluindo personagens, eventos, a régua de anos e interações como zoom e seleção.
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Person, BibleEvent, YearReferenceMode, TimelineViewProps, EventCardPosition, TimeComparisonItem } from '../types'; // Removed unused IconProps
+import { Person, BibleEvent, YearReferenceMode, TimelineViewProps } from '../types'; // Removed unused IconProps
 import {
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
@@ -33,47 +33,6 @@ const STATIC_REFERENCE_AC_YEAR = 3848;
 const YEAR_MARKER_INTERVAL_MAJOR = 500; // Intervalo para marcadores de ano principais
 const YEAR_MARKER_INTERVAL_MINOR = 100; // Intervalo para marcadores de ano secundários
 const HIDDEN_ICON_RADIUS_BASE = 6; // Raio base para o ícone "+" de personagem oculto no arco
-
-// Ruler zone visibility state interface
-interface RulerZoneVisibility {
-  events: boolean;
-  births: boolean;
-  deaths: boolean;
-}
-
-// Utility function to calculate text width for dynamic event card sizing
-const calculateTextWidth = (text: string, fontSize: string, fontFamily: string = 'Arial, sans-serif'): number => {
-  // Create a temporary canvas element to measure text
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  if (!context) return text.length * 8; // Fallback to rough estimate
-  
-  context.font = `${fontSize} ${fontFamily}`;
-  const metrics = context.measureText(text);
-  canvas.remove(); // Clean up
-  
-  return metrics.width;
-};
-
-// Dynamic sizing for event labels based on text content
-const getEventLabelDimensions = (eventName: string, globalUiScale: number) => {
-  const eventTextFontSize = `calc(1.4rem * ${globalUiScale})`;
-  const baseFontSizePx = 1.4 * globalUiScale * 16; // Convert rem to px (assuming 16px base)
-  
-  // Calculate width based on text content with padding
-  const textWidth = calculateTextWidth(eventName, `${baseFontSizePx}px`);
-  const minWidth = 80 * globalUiScale; // Minimum width
-  const maxWidth = 200 * globalUiScale; // Maximum width
-  const padding = 16 * globalUiScale; // Horizontal padding
-  
-  const dynamicWidth = Math.max(minWidth, Math.min(maxWidth, textWidth + padding));
-  
-  return {
-    width: dynamicWidth,
-    height: 200 * globalUiScale, // Keep height consistent for now
-    fontSize: eventTextFontSize
-  };
-};
 
 // --- Ícones Helper --- (Old icon components removed)
 
@@ -157,16 +116,11 @@ type PersonDisplayData = Person & {
 
 
 // Componente React TimelineView
-const TimelineView: React.FC<TimelineViewProps> = ({
-  people: allPeople, events, onSelectPerson, onSelectEvent, yearReferenceMode, personBarPalette,
+const TimelineView: React.FC<TimelineViewProps> = ({  people: allPeople, events, onSelectPerson, onSelectEvent, yearReferenceMode, personBarPalette,
   horizontalScale: baseHorizontalScale, verticalScale: baseVerticalScale, globalUiScale,
   hiddenCharacterIds, onToggleCharacterVisibility,
   showCharacterBarControls, activePersonLifeLines, onTogglePersonLifeLine,
-  isYearRulerSticky: externalIsYearRulerSticky,
-  eventCardPositions,
-  onEventCardPositionChange,
-  timeComparison,
-  onTimeComparisonItemSelect
+  isYearRulerSticky: externalIsYearRulerSticky
 }) => {
   
   const effectiveHorizontalScale = baseHorizontalScale * globalUiScale;
@@ -177,11 +131,14 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     [allPeople, events, yearReferenceMode, effectiveHorizontalScale]
   );
   const totalDataSpan = Math.abs(displayStartYear - displayEndYear);
+
   const [isYearRulerSticky, setIsYearRulerSticky] = useState(externalIsYearRulerSticky ?? true);
   
-  // Sync internal state with external prop - força atualização
+  // Sync internal state with external prop
   useEffect(() => {
-    setIsYearRulerSticky(externalIsYearRulerSticky ?? true);
+    if (externalIsYearRulerSticky !== undefined) {
+      setIsYearRulerSticky(externalIsYearRulerSticky);
+    }
   }, [externalIsYearRulerSticky]);
 
   // Dimensões escalonadas
@@ -189,6 +146,18 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   const SCALED_SIBLING_BAR_HEIGHT = BASE_DIMENSIONS.siblingBarHeight * effectiveVerticalScale;
   const SCALED_BAR_VERTICAL_GAP = BASE_DIMENSIONS.barVerticalGap * effectiveVerticalScale;
   const SCALED_SIBLING_VERTICAL_GAP = BASE_DIMENSIONS.siblingVerticalGap * effectiveVerticalScale;
+  const SCALED_YEAR_HEADER_HEIGHT = BASE_DIMENSIONS.yearHeaderHeight * globalUiScale; 
+    const SCALED_PERSON_BLOCK_ACTUAL_START_Y = useMemo(() => {
+    if (isYearRulerSticky) {
+      // When ruler is sticky, ensure enough space below it for first character
+      // Add extra padding to avoid overlap
+      return SCALED_YEAR_HEADER_HEIGHT + (BASE_DIMENSIONS.personBlockGapBelowStickyRuler * effectiveVerticalScale) - 90 + 20;
+    } else {
+      // When ruler is not sticky, ensure first character is visible and not hidden by header
+      // Add extra padding for better visibility
+      return (BASE_DIMENSIONS.personBlockGapWithNonStickyRuler * effectiveVerticalScale) + 30;
+    }
+  }, [isYearRulerSticky, SCALED_YEAR_HEADER_HEIGHT, effectiveVerticalScale, SCALED_BAR_VERTICAL_GAP, SCALED_BAR_HEIGHT]);
   
   const SCALED_EVENT_LABEL_MAX_HEIGHT = BASE_DIMENSIONS.eventLabelEstimatedHeight * globalUiScale;
   const SCALED_EVENT_MIN_VERTICAL_GAP = BASE_DIMENSIONS.eventMinVerticalGap * effectiveVerticalScale;
@@ -201,25 +170,14 @@ const TimelineView: React.FC<TimelineViewProps> = ({
   const yearMarkerMinorFontSize = `calc(var(--dynamic-font-size-sm) * ${globalUiScale})`;  
   const eventIconFontSize = `calc(var(--dynamic-font-size-md) * ${globalUiScale})`;  
   const eventTextFontSize = `calc(var(--dynamic-font-size-xl) * ${globalUiScale})`;  
-  const dateLineLabelFontSize = `calc(var(--dynamic-font-size-xs) * ${globalUiScale})`;
+  const dateLineLabelFontSize = `calc(var(--dynamic-font-size-xs) * ${globalUiScale})`;  
   const [expandedSiblingGroups, setExpandedSiblingGroups] = useState<Record<string, boolean>>({});
   const mainTimelineContentRef = useRef<HTMLDivElement>(null); 
   const [timelineHeight, setTimelineHeight] = useState(0);
-  // Event card dragging state
-  const [draggingEventId, setDraggingEventId] = useState<string | null>(null);
-  const [dragStartY, setDragStartY] = useState(0);
+
   const [scrollPosition, setScrollPosition] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const rulerContentRef = useRef<HTMLDivElement>(null);
-  
-  // Ruler zone visibility state
-  const [rulerZoneVisibility, setRulerZoneVisibility] = useState<RulerZoneVisibility>({
-    events: true,
-    births: true,
-    deaths: true
-  });
-  
-  // Robust scroll synchronization system - always syncs ruler when visible
+  const rulerContentRef = useRef<HTMLDivElement>(null);  // Robust scroll synchronization system - always syncs ruler when visible
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     const rulerContainer = rulerContentRef.current;
@@ -308,105 +266,9 @@ const TimelineView: React.FC<TimelineViewProps> = ({
         break; // Primeira proximidade encontrada já define o alinhamento
       }
     }
-      return { alignmentStyle, offsetX };
-  };
-  
-  // Event card dragging and positioning functions
-  const getEventCardPosition = (eventId: string): EventCardPosition => {
-    return eventCardPositions[eventId] || {
-      eventId,
-      x: 0,
-      y: 100, // Default vertical offset from timeline
-      alignment: 'center',
-      isDragging: false
-    };
-  };
-  const handleEventCardDragStart = (eventId: string, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
     
-    setDraggingEventId(eventId);
-    setDragStartY(event.clientY);
-    
-    // Update position to show dragging state
-    onEventCardPositionChange(eventId, { isDragging: true });
-  };
-
-  const handleEventCardDrag = (event: MouseEvent) => {
-    if (!draggingEventId) return;
-    
-    const deltaY = event.clientY - dragStartY;
-    const currentPosition = getEventCardPosition(draggingEventId);
-    
-    // Calculate new Y position with constraints
-    let newY = currentPosition.y + deltaY;
-    
-    // Prevent dragging too high (minimum 20px from top)
-    newY = Math.max(20, newY);
-    
-    // Prevent dragging below timeline (maximum timeline height - 50px)
-    newY = Math.min(timelineHeight - 50, newY);
-    
-    // Check for collisions with other event cards and adjust
-    newY = avoidEventCardCollisions(draggingEventId, newY);
-    
-    onEventCardPositionChange(draggingEventId, { y: newY });
-    setDragStartY(event.clientY);
-  };
-  const handleEventCardDragEnd = () => {
-    if (!draggingEventId) return;
-    
-    onEventCardPositionChange(draggingEventId, { isDragging: false });
-    setDraggingEventId(null);
-    setDragStartY(0);
-  };
-
-  const avoidEventCardCollisions = (currentEventId: string, proposedY: number): number => {
-    const CARD_HEIGHT = 40; // Approximate event card height
-    const MIN_GAP = 10; // Minimum gap between cards
-    
-    // Get all other event card positions
-    const otherPositions = Object.values(eventCardPositions).filter(pos => pos.eventId !== currentEventId);
-    
-    for (const otherPos of otherPositions) {
-      const distance = Math.abs(proposedY - otherPos.y);
-      
-      if (distance < CARD_HEIGHT + MIN_GAP) {
-        // Collision detected, find a safe position
-        if (proposedY > otherPos.y) {
-          // Move below the other card
-          proposedY = otherPos.y + CARD_HEIGHT + MIN_GAP;
-        } else {
-          // Move above the other card
-          proposedY = otherPos.y - CARD_HEIGHT - MIN_GAP;
-        }
-      }
-    }
-    
-    return proposedY;
-  };
-
-  const handleEventCardAlignmentChange = (eventId: string, alignment: 'left' | 'center' | 'right') => {
-    onEventCardPositionChange(eventId, { alignment });
-  };
-  // Add global event listeners for dragging
-  useEffect(() => {
-    if (draggingEventId) {
-      const handleMouseMove = (e: MouseEvent) => handleEventCardDrag(e);
-      const handleMouseUp = () => handleEventCardDragEnd();
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-    return undefined;
-  }, [draggingEventId, dragStartY]);
-
-  // Sistema simplificado de detecção de proximidade para datas na régua
+    return { alignmentStyle, offsetX };
+  };  // Sistema simplificado de detecção de proximidade para datas na régua
   const calculateIndividualYearAlignment = (allYearsData: { year: number, x: number, id: string, type: string }[], currentIndex: number) => {
     const PROXIMITY_THRESHOLD = 60; // Distância em pixels para considerar próximo
     const currentYearData = allYearsData[currentIndex];
@@ -442,24 +304,15 @@ const TimelineView: React.FC<TimelineViewProps> = ({
     if (relativeYear === undefined) return undefined;
     return yearReferenceMode === 'AC' ? referenceACForConversion - relativeYear : relativeYear;
   };
+
   const getPixelX = (yearToDisplay?: number): number => {
     if (yearToDisplay === undefined || totalDataSpan <= 0) return 0;
     if (yearReferenceMode === 'AC') {
       return ((displayStartYear - yearToDisplay) / totalDataSpan) * totalPixelWidth;
     } else {
       return ((yearToDisplay - displayStartYear) / totalDataSpan) * totalPixelWidth;
-    }  };
-
-  // Calculate Y positions - must be defined before useMemos that depend on it
-  // Simplified calculation to avoid circular dependencies
-  const SCALED_PERSON_BLOCK_ACTUAL_START_Y: number = useMemo(() => {
-    const baseRulerHeight = BASE_DIMENSIONS.yearHeaderHeight * globalUiScale;
-    if (isYearRulerSticky) {
-      return baseRulerHeight + (BASE_DIMENSIONS.personBlockGapBelowStickyRuler * effectiveVerticalScale) - 90 + 20;
-    } else {
-      return (BASE_DIMENSIONS.personBlockGapWithNonStickyRuler * effectiveVerticalScale) + 30;
     }
-  }, [isYearRulerSticky, globalUiScale, effectiveVerticalScale]);
+  };
 
   const sortedAllPeople = useMemo(() =>
     [...allPeople].sort((a, b) => (a.birthYear || 0) - (b.birthYear || 0)),
@@ -578,12 +431,12 @@ const processedEventsData = useMemo(() => {
     });
 
     const placedEventTitlesLayout: Array<{ x: number, y: number, width: number, height: number, id: string, eventLineX: number }> = [];
-    const pixelsFor30Years = (30 / totalDataSpan) * totalPixelWidth;    return sortedInputEvents.map(event => {
+    const pixelsFor30Years = (30 / totalDataSpan) * totalPixelWidth;
+
+    return sortedInputEvents.map(event => {
         const eventX = event.xPos;
-        // Dynamic sizing based on event name length
-        const labelDimensions = getEventLabelDimensions(event.name, globalUiScale);
-        const eventLabelWidth = labelDimensions.width; 
-        const eventLabelHeight = labelDimensions.height;
+        const eventLabelWidth = 20 * globalUiScale; 
+        const eventLabelHeight = SCALED_EVENT_LABEL_MAX_HEIGHT;
 
         const checkCollision = (
             targetX: number, targetY: number, targetW: number, targetH: number, 
@@ -950,7 +803,7 @@ const processedEventsData = useMemo(() => {
     const lifespanFs = isSibling ? `calc(0.6rem * ${globalUiScale})` : lifespanTextFontSize;
 
 
-    const elements: React.ReactElement[] = [];
+    const elements = [];
     elements.push(
       <div
         key={`bar-${p.id}`}
@@ -967,123 +820,48 @@ const processedEventsData = useMemo(() => {
         title={`${p.name}\n${lifespanInfo}`}
         role="button"
         tabIndex={0}
-        onClick={(e) => {
-          // Handle time comparison if active
-          if (timeComparison?.isActive && onTimeComparisonItemSelect) {
-            const clickX = e.clientX - e.currentTarget.getBoundingClientRect().left;
-            const clickPercentage = clickX / p.barWidthPx;
-            
-            // Determine if clicking closer to birth or death
-            const isBirthClick = clickPercentage < 0.5;
-            
-            if (isBirthClick && p.birthYear !== undefined) {
-              const timeComparisonItem: TimeComparisonItem = {
-                id: `${p.id}-birth`,
-                type: 'person-birth',
-                name: `Nascimento de ${p.name}`,
-                year: p.birthYear
-              };
-              onTimeComparisonItemSelect(timeComparisonItem);
-            } else if (!isBirthClick && (p.deathYear !== undefined || p.totalLifespan !== undefined)) {
-              const deathYear = p.deathYear || (p.birthYear ? p.birthYear + (p.totalLifespan || 0) : undefined);
-              if (deathYear !== undefined) {
-                const timeComparisonItem: TimeComparisonItem = {
-                  id: `${p.id}-death`,
-                  type: 'person-death',
-                  name: `Morte de ${p.name}`,
-                  year: deathYear
-                };
-                onTimeComparisonItemSelect(timeComparisonItem);
-              }
-            }
-          } else {
-            // Normal person selection
-            onSelectPerson(p);
-          }
-        }}
-        onKeyDown={(e) => { 
-          if (e.key === 'Enter' || e.key === ' ') {
-            if (timeComparison?.isActive && onTimeComparisonItemSelect && p.birthYear !== undefined) {
-              // Default to birth for keyboard access
-              const timeComparisonItem: TimeComparisonItem = {
-                id: `${p.id}-birth`,
-                type: 'person-birth',
-                name: `Nascimento de ${p.name}`,
-                year: p.birthYear
-              };
-              onTimeComparisonItemSelect(timeComparisonItem);
-            } else {
-              onSelectPerson(p);
-            }
-          }
-        }}
+        onClick={() => onSelectPerson(p)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectPerson(p);}}
       >        <div className={`flex items-center h-full ${showCharacterBarControls && !isSibling ? 'w-auto min-w-[60px]' : 'w-auto'}`}>
-          {showCharacterBarControls && !isSibling && (            <div style={{ transform: `scale(${Math.min(globalUiScale * 0.6, 1.0)})`, transformOrigin: 'left center' }} className="flex items-center">
-                {/* 
-                  Botões de Controle de Personagem - Personalização:
-                  - Para alterar o tamanho dos ícones: mude w-8 h-8 para w-6 h-6 (menor) ou w-10 h-10 (maior)
-                  - Para alterar o padding dos botões: mude p-3 para p-2 (menor) ou p-4 (maior) 
-                  - Para alterar as cores: modifique a propriedade 'color' no style
-                  - Para alterar o efeito de sombra: modifique a propriedade 'filter' no style
-                */}
-                <button
+          {showCharacterBarControls && !isSibling && (
+            <div style={{ transform: `scale(${Math.min(globalUiScale * 0.6, 1.0)})`, transformOrigin: 'left center' }} className="flex items-center">                <button
                     onClick={(e) => { e.stopPropagation(); onToggleCharacterVisibility(p.id); }}
-                    className="md-interactive character-button p-3 focus:outline-none rounded-md"
-                    style={{
-                      filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 2px white)',
-                      color: '#000000'
-                    }}
+                    className="md-interactive character-button p-1 text-theme-control-icon hover:text-red-400 focus:outline-none rounded-md-sm"
                     title={p.isVisible ? "Ocultar personagem" : "Mostrar personagem"}
                     aria-pressed={!p.isVisible}
                 >
-                    {p.isVisible ? <EyeSlashIcon className="w-8 h-8" /> : <EyeIcon className="w-8 h-8" />}
-                </button><button
+                    {p.isVisible ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                </button>
+                <button
                     onClick={(e) => { e.stopPropagation(); onTogglePersonLifeLine(p.id); }}
-                    className="md-interactive character-button p-3 focus:outline-none transition-colors rounded-md"
-                    style={{
-                      filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 2px white)',
-                      color: activePersonLifeLines[p.id] ? '#fbbf24' : '#000000'
-                    }}
+                    className={`md-interactive character-button p-1.5 focus:outline-none transition-colors rounded-md-sm ${activePersonLifeLines[p.id] ? 'text-yellow-400' : 'text-theme-control-icon hover:text-theme-character-bar-text'}`}
                     title={activePersonLifeLines[p.id] ? "Ocultar linhas de vida" : "Mostrar linhas de vida"}
                     aria-pressed={!!activePersonLifeLines[p.id]}
                 >
-                    {activePersonLifeLines[p.id] ? <ArrowsPointingOutIcon className="w-8 h-8" /> : <ArrowsPointingInIcon className="w-8 h-8" />}
-                </button>                {hasVisibleExpandableSiblings && (
-                  <button 
+                    {activePersonLifeLines[p.id] ? <ArrowsPointingOutIcon className="w-5 h-5" /> : <ArrowsPointingInIcon className="w-5 h-5" />}
+                </button>
+                {hasVisibleExpandableSiblings && (                  <button 
                     onClick={(e) => toggleSiblingExpansion(p.id, e)} 
-                    className="md-interactive character-button p-3 focus:outline-none rounded-md" 
-                    style={{
-                      filter: 'drop-shadow(0 0 1px white) drop-shadow(0 0 2px white)',
-                      color: '#000000'
-                    }}
+                    className="md-interactive character-button p-0.5 focus:outline-none text-theme-control-icon hover:text-theme-character-bar-text rounded-md-sm" 
                     title={expandedSiblingGroups[p.id] ? "Recolher irmãos" : "Expandir irmãos"} 
                     aria-expanded={!!expandedSiblingGroups[p.id]}
                   >
-                    {expandedSiblingGroups[p.id] ? <MinusCircleIcon className="w-8 h-8" /> : <PlusCircleIcon className="w-8 h-8" />}
+                    {expandedSiblingGroups[p.id] ? <MinusCircleIcon className="w-5 h-5" /> : <PlusCircleIcon className="w-5 h-5" />}
                   </button>
                 )}
             </div>
           )}
         </div>        <div
-          className={`flex-grow flex flex-col justify-center h-full cursor-pointer ${textContainerPadding} overflow-hidden min-w-0`}
+          className={`flex-grow flex flex-col justify-center h-full cursor-pointer ${textContainerPadding} overflow-hidden`}
           style={{
             transform: showCharacterBarControls ? 
               `translateX(${Math.max(0, getFloatingNamePosition(p.x, p.barWidthPx) - p.x)}px)` : 
-              'none',
-            maxWidth: showCharacterBarControls ? 
-              `calc(${p.barWidthPx}px - 80px)` :  // Reserve space for controls
-              `calc(${p.barWidthPx}px - 20px)`,   // Just basic padding
-            // When moving left (negative transform), align text to right
-            // When at original position or moving right, align text to left
-            textAlign: showCharacterBarControls && (getFloatingNamePosition(p.x, p.barWidthPx) - p.x) < 0 ? 'right' : 'left'
+              'none'
           }}
-        ><span className="dynamic-text-lg font-md-title-medium truncate leading-tight" style={{ fontSize: nameFs }}>
+        >          <span className="dynamic-text-lg font-md-title-medium truncate leading-tight" style={{ fontSize: nameFs }}>
             {p.name}
           </span>{(p.isCovenantLine || isSibling) && showCharacterBarControls && ( 
-            <span className="truncate leading-tight text-theme-lifespan-text dynamic-text-sm" style={{ 
-              fontSize: lifespanFs,
-              maxWidth: '100%'
-            }}>
+            <span className="truncate leading-tight text-theme-lifespan-text dynamic-text-sm" style={{ fontSize: lifespanFs }}>
               {lifespanInfo}
             </span>
           )}
@@ -1091,47 +869,9 @@ const processedEventsData = useMemo(() => {
         {p.isDeathUnknown && showCharacterBarControls && <span className="ml-auto mr-2 text-theme-lifespan-text" style={{ fontSize: lifespanFs }}>?</span>}
       </div>    );
 
-    // Removido: datas de nascimento e morte ao lado dos personagens    // Agora aparecem apenas na régua cronológica quando linhas de vida estão ativas
-    
-    return elements;
-  };
-
-  // Calculate counts for each zone
-  const rulerZoneCounts = useMemo(() => {
-    const eventCount = events.length;
-    
-    let birthCount = 0;
-    let deathCount = 0;
-    
-    // Count births and deaths from all people (simplified for now)
-    allPeople.forEach((p: any) => {
-      if (p.birthYear !== undefined) birthCount++;
-      if (p.deathYear !== undefined || (p.birthYear !== undefined && p.totalLifespan !== undefined)) {
-        deathCount++;
-      }
-    });
-    
-    return { eventCount, birthCount, deathCount };
-  }, [events, allPeople]);
-
-  // Calculate dynamic ruler height based on visible zones
-  const dynamicRulerHeight: number = useMemo(() => {
-    let baseHeight = 60; // Base height for year markers
-    
-    if (rulerZoneVisibility.events && rulerZoneCounts.eventCount > 0) {
-      baseHeight += 35; // Add space for event zone
-    }
-    
-    if ((rulerZoneVisibility.births && rulerZoneCounts.birthCount > 0) || 
-        (rulerZoneVisibility.deaths && rulerZoneCounts.deathCount > 0)) {
-      baseHeight += 35; // Add space for birth/death zone
-    }
-      return baseHeight * globalUiScale;  }, [rulerZoneVisibility, rulerZoneCounts, globalUiScale]);// Function to toggle ruler zone visibility
-  const toggleRulerZoneVisibility = (zone: keyof RulerZoneVisibility) => {
-    setRulerZoneVisibility(prev => ({
-      ...prev,
-      [zone]: !prev[zone]
-    }));
+    // Removido: datas de nascimento e morte ao lado dos personagens
+    // Agora aparecem apenas na régua cronológica quando linhas de vida estão ativas
+      return elements;
   };
 
   return (
@@ -1140,66 +880,25 @@ const processedEventsData = useMemo(() => {
         className="flex-grow h-full relative overflow-hidden" 
         role="region" 
         aria-label="Linha do Tempo Genealógica"
-      >        {/* Régua cronológica - sempre visível, sticky ou não */}
+      >          {/* Régua cronológica - sempre visível, sticky ou não */}
         <div 
-          className={`w-full overflow-x-auto overflow-y-hidden ${isYearRulerSticky ? 'sticky' : 'relative'}`}          style={{
-            top: isYearRulerSticky ? '0px' : 'auto',
+          className="w-full overflow-x-auto overflow-y-hidden"
+          style={{
+            position: isYearRulerSticky ? 'sticky' : 'relative',
+            top: isYearRulerSticky ? 0 : 'auto',
             zIndex: Z_INDICES.yearHeader,
-            height: `${dynamicRulerHeight}px`
+            height: `${SCALED_YEAR_HEADER_HEIGHT}px`
           }}
           ref={rulerContentRef}
-        >          <div
+        >
+          <div
             style={{ 
-              height: `${dynamicRulerHeight}px`, 
+              height: `${SCALED_YEAR_HEADER_HEIGHT}px`, 
               width: `${totalPixelWidth}px`,
-            }}            className="flex items-end px-4 bg-theme-header-bg relative"
+            }}
+            className="flex items-end px-4 bg-theme-header-bg relative"
             aria-hidden="true"
           >
-            {/* Zone indicators with counts - positioned at top right of ruler */}
-            <div className="absolute top-2 right-4 flex gap-2 z-10">
-              {/* Events indicator */}
-              {rulerZoneCounts.eventCount > 0 && (
-                <button
-                  onClick={() => toggleRulerZoneVisibility('events')}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    rulerZoneVisibility.events 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-300 text-gray-600'
-                  } hover:opacity-80`}
-                  title={`${rulerZoneVisibility.events ? 'Hide' : 'Show'} events in ruler (${rulerZoneCounts.eventCount})`}
-                >
-                  📅 {rulerZoneCounts.eventCount}
-                </button>
-              )}
-              {/* Births indicator */}
-              {rulerZoneCounts.birthCount > 0 && (
-                <button
-                  onClick={() => toggleRulerZoneVisibility('births')}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    rulerZoneVisibility.births 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-300 text-gray-600'
-                  } hover:opacity-80`}
-                  title={`${rulerZoneVisibility.births ? 'Hide' : 'Show'} births in ruler (${rulerZoneCounts.birthCount})`}
-                >
-                  ⭐ {rulerZoneCounts.birthCount}
-                </button>
-              )}
-              {/* Deaths indicator */}
-              {rulerZoneCounts.deathCount > 0 && (
-                <button
-                  onClick={() => toggleRulerZoneVisibility('deaths')}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    rulerZoneVisibility.deaths 
-                      ? 'bg-red-600 text-white' 
-                      : 'bg-gray-300 text-gray-600'
-                  } hover:opacity-80`}
-                  title={`${rulerZoneVisibility.deaths ? 'Hide' : 'Show'} deaths in ruler (${rulerZoneCounts.deathCount})`}
-                >
-                  † {rulerZoneCounts.deathCount}
-                </button>
-              )}
-            </div>
             {/* ZONA 1: Anos principais (500/1000) e menores (100) com linhas verticais */}
             {yearMarkers.map(marker => (
               <div key={`year-marker-${marker.year}-${marker.x}`} style={{ position: 'absolute', left: `${marker.x}px`, bottom: marker.isMajor ? '0px' : '8px'}} className="h-full flex flex-col items-center justify-end">
@@ -1219,7 +918,7 @@ const processedEventsData = useMemo(() => {
                 ></div>
               </div>
             ))}            {/* ZONA 2: Eventos - 50px acima da base (centralizados e com anti-sobreposição) */}
-            {rulerZoneVisibility.events && events.map((event, eventIndex) => {
+            {events.map((event, eventIndex) => { 
               const eventDisplayYear = getDisplayYear(event.year);
               if (eventDisplayYear === undefined) return null;
               const eventX = getPixelX(eventDisplayYear);
@@ -1253,7 +952,7 @@ const processedEventsData = useMemo(() => {
                 </div>
               );
             })}            {/* ZONA 3: Nascimento e Morte - 75px acima da base (verificação individual de todos os anos) */}
-            {(rulerZoneVisibility.births || rulerZoneVisibility.deaths) && (() => {
+            {(() => {
               // Coletar TODOS os anos individuais (nascimento e morte) de TODOS os personagens
               const allYearsData: { year: number, x: number, id: string, type: string, personId: string, element: React.ReactElement }[] = [];
               
@@ -1262,8 +961,8 @@ const processedEventsData = useMemo(() => {
                 const deathDisplayYear = yearReferenceMode === 'AC' ? p.displayDeathAC : p.displayDeathRelative;
                 const yearSuffix = yearReferenceMode === 'AC' ? 'aC' : '';
                 
-                // Adicionar ano de NASCIMENTO se existir e se births está visível
-                if (rulerZoneVisibility.births && birthDisplayYear !== undefined) {
+                // Adicionar ano de NASCIMENTO se existir
+                if (birthDisplayYear !== undefined) {
                   const birthX = getPixelX(birthDisplayYear);
                   allYearsData.push({
                     year: birthDisplayYear,
@@ -1280,8 +979,8 @@ const processedEventsData = useMemo(() => {
                   });
                 }
                 
-                // Adicionar ano de MORTE se existir, for diferente do nascimento e se deaths está visível
-                if (rulerZoneVisibility.deaths && deathDisplayYear !== undefined && deathDisplayYear !== birthDisplayYear) {
+                // Adicionar ano de MORTE se existir e for diferente do nascimento
+                if (deathDisplayYear !== undefined && deathDisplayYear !== birthDisplayYear) {
                   const deathX = getPixelX(deathDisplayYear);
                   allYearsData.push({
                     year: deathDisplayYear,
@@ -1372,34 +1071,29 @@ const processedEventsData = useMemo(() => {
                 {deathX !== undefined && <div aria-hidden="true" className={`absolute bottom-0 ${LINE_THICKNESS_CLASSES.normal} bg-theme-person-line-active`} style={{ left: `${deathX}px`, top: `0px`, height: `${timelineHeight}px`, zIndex: Z_INDICES.activePersonLines, opacity: 0.7 }}></div>}
               </React.Fragment>
             );
-          })}          {processedEventsData.map((event) => {
+          })}          {processedEventsData.map((event, eventIndex) => {
             if (!event) return null; 
             const xPos = event.xPos;
-              // Get stored position for this event card
-            const eventCardPosition = getEventCardPosition(event.id);
+            let eventNameY = event.eventNameY;
             
-            // Calculate final positioning based on alignment and stored position
-            let cardX = xPos;
-            let transform = 'translateX(-50%)'; // Default: centered
+            // Calcular alinhamento baseado em proximidade para o nome do evento
+            const { alignmentStyle, offsetX } = calculateEventAlignment(events, eventIndex, xPos);
             
-            switch (eventCardPosition.alignment) {
-              case 'left':
-                cardX = xPos - 100; // Offset to the left
-                transform = 'translateX(0%)';
-                break;
-              case 'right':
-                cardX = xPos + 100; // Offset to the right
-                transform = 'translateX(-100%)';
-                break;
-              case 'center':
-              default:
-                cardX = xPos; // Centered on timeline
-                transform = 'translateX(-50%)';
-                break;
+            // Collision detection for event labels
+            const collisionOffset = eventIndex * 30; // Stagger vertically
+            const eventLabelOffset = Math.min(collisionOffset, 150); // Max offset 150px
+            eventNameY += eventLabelOffset;
+            
+            // Posição centralizada na linha do evento (sem movimento horizontal)
+            const centeredX = xPos + offsetX;
+            
+            // Determinar transform baseado no alinhamento
+            let transform = 'translateX(-50%)'; // Padrão: centralizado
+            if (alignmentStyle === 'left') {
+              transform = 'translateX(-100%)'; // Alinhado à esquerda
+            } else if (alignmentStyle === 'right') {
+              transform = 'translateX(0%)'; // Alinhado à direita
             }
-            
-            const cardY = eventCardPosition.y;
-            const isDragging = eventCardPosition.isDragging;
             
             return (
               <React.Fragment key={`event-full-${event.id}`}>
@@ -1427,104 +1121,31 @@ const processedEventsData = useMemo(() => {
                         aria-hidden="true"
                         >
                         <div className={`group-hover:scale-125 transition-transform text-theme-event-line`} style={{fontSize: eventIconFontSize}}>{getEventIcon(event.name, `w-${Math.round(5 * globalUiScale)} h-${Math.round(5 * globalUiScale)}`)}</div>
-                    </div>                </div>
-                  {/* Draggable event card */}
+                    </div>
+                </div>                
                 <div
                   style={{
                     position: 'absolute',
-                    left: `${cardX}px`, 
-                    top: `${cardY}px`,
-                    zIndex: isDragging ? Z_INDICES.modals : Z_INDICES.eventIconsAndLabels,
-                    transform: transform,
-                    cursor: isDragging ? 'grabbing' : 'grab',
-                    fontSize: eventTextFontSize,
-                    userSelect: 'none',
-                    width: `${getEventLabelDimensions(event.name, globalUiScale).width}px`, // Dynamic width
-                    minHeight: `${Math.max(32 * globalUiScale, 32)}px`, // Dynamic minimum height
+                    left: `${centeredX}px`, 
+                    top: `${eventNameY}px`,
+                    zIndex: Z_INDICES.eventIconsAndLabels,
+                    writingMode: 'vertical-rl', 
+                    transform: `rotate(180deg) ${transform}`, // Aplicar rotação + alinhamento
+                    maxHeight: `${SCALED_EVENT_LABEL_MAX_HEIGHT}px`,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap', 
+                    fontSize: eventTextFontSize 
                   }}
-                  className={`px-2 py-1 bg-theme-event-label-bg text-theme-event-label-text rounded shadow-lg border border-theme-border
-                    flex items-center space-x-2 transition-all duration-200 hover:shadow-xl group
-                    ${isDragging ? 'scale-105 shadow-2xl' : ''}`}
-                  onMouseDown={(e) => handleEventCardDragStart(event.id, e)}                  onClick={(e) => {
-                    e.stopPropagation();
-                      // Handle time comparison if active
-                    if (timeComparison?.isActive && onTimeComparisonItemSelect && event.year !== undefined) {
-                      const timeComparisonItem: TimeComparisonItem = {
-                        id: event.id,
-                        type: 'event',
-                        name: event.name,
-                        year: event.year
-                      };
-                      onTimeComparisonItemSelect(timeComparisonItem);
-                    } else {
-                      // Normal event selection
-                      onSelectEvent(event);
-                    }
-                  }}
-                  onKeyDown={(e) => { 
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.stopPropagation();
-                      onSelectEvent(event);
-                    }
-                  }}
+                  className={`px-0.5 py-1 bg-theme-event-label-bg text-theme-event-label-text rounded shadow cursor-pointer dynamic-text-xl`}
+                  onClick={() => onSelectEvent(event)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectEvent(event);}}
                   role="button"
                   tabIndex={0}
-                  title={`${event.name} - Arraste para reposicionar`}
-                  aria-label={`Evento ${event.name} - Clique para detalhes ou arraste para reposicionar`}
+                  title={event.name}
+                  aria-label={`Ver detalhes do evento ${event.name} (texto vertical)`}
                 >
-                  {/* Drag handle */}
-                  <div className="text-xs text-theme-text opacity-50 cursor-grab">⋮⋮</div>
-                  
-                  {/* Event name - dynamic sizing to fit content */}
-                  <span 
-                    className="overflow-hidden text-ellipsis"
-                    style={{
-                      maxWidth: `${getEventLabelDimensions(event.name, globalUiScale).width - 60}px`, // Account for drag handle and buttons
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {event.name}
-                  </span>
-                  
-                  {/* Alignment controls */}
-                  <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEventCardAlignmentChange(event.id, 'left');
-                      }}
-                      className={`w-3 h-3 text-xs hover:bg-theme-accent hover:text-white rounded transition-colors
-                        ${eventCardPosition.alignment === 'left' ? 'bg-theme-accent text-white' : 'bg-theme-app-bg text-theme-text'}`}
-                      title="Alinhar à esquerda"
-                      aria-label="Alinhar evento à esquerda"
-                    >
-                      ◀
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEventCardAlignmentChange(event.id, 'center');
-                      }}
-                      className={`w-3 h-3 text-xs hover:bg-theme-accent hover:text-white rounded transition-colors
-                        ${eventCardPosition.alignment === 'center' ? 'bg-theme-accent text-white' : 'bg-theme-app-bg text-theme-text'}`}
-                      title="Centralizar"
-                      aria-label="Centralizar evento"
-                    >
-                      ●
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEventCardAlignmentChange(event.id, 'right');
-                      }}
-                      className={`w-3 h-3 text-xs hover:bg-theme-accent hover:text-white rounded transition-colors
-                        ${eventCardPosition.alignment === 'right' ? 'bg-theme-accent text-white' : 'bg-theme-app-bg text-theme-text'}`}
-                      title="Alinhar à direita"
-                      aria-label="Alinhar evento à direita"
-                    >
-                      ▶
-                    </button>
-                  </div>
+                  {event.name}
                 </div>
               </React.Fragment>
             );
@@ -1545,7 +1166,9 @@ const processedEventsData = useMemo(() => {
 
             if (expandedSiblingGroups[p.id] && p.nonCovenantChildren.length > 0) {
                 let currentSiblingY = p.y + SCALED_BAR_HEIGHT + SCALED_BAR_VERTICAL_GAP;
-                const visibleSiblings = p.nonCovenantChildren.filter(s => !hiddenCharacterIds.includes(s.id));                siblingElements = visibleSiblings.map((sibling) => {
+                const visibleSiblings = p.nonCovenantChildren.filter(s => !hiddenCharacterIds.includes(s.id));
+
+                siblingElements = visibleSiblings.flatMap((sibling) => {
                     const siblingBirthDisplay = getDisplayYear(sibling.birthYear);
                     let siblingDeathDisplay: number | undefined;
                     if(sibling.deathYear !== undefined) siblingDeathDisplay = getDisplayYear(sibling.deathYear);
@@ -1560,9 +1183,7 @@ const processedEventsData = useMemo(() => {
                     if (siblingDeathDisplay !== undefined && siblingBirthDisplay !== undefined) {
                         siblingBarWidthPx = Math.abs(getPixelX(siblingDeathDisplay) - getPixelX(siblingBirthDisplay));
                     }
-                    siblingBarWidthPx = Math.max(BASE_DIMENSIONS.minSiblingBarWidthPx * effectiveVerticalScale, siblingBarWidthPx);
-
-                    const siblingDisplayData: PersonDisplayData = {
+                    siblingBarWidthPx = Math.max(BASE_DIMENSIONS.minSiblingBarWidthPx * effectiveVerticalScale, siblingBarWidthPx);                    const siblingDisplayData: PersonDisplayData = {
                         ...sibling,
                         isVisible: true, 
                         ...(yearReferenceMode === 'AC' && siblingBirthDisplay !== undefined && { displayBirthAC: siblingBirthDisplay }),
@@ -1577,7 +1198,7 @@ const processedEventsData = useMemo(() => {
                         isDeathUnknown: sibling.deathYear === undefined && sibling.totalLifespan === undefined,
                     };
                     return renderPersonBarWithLifespan(siblingDisplayData, true, 0, siblingY);
-                }).flat();}
+                });            }
             return [...parentElements, ...siblingElements];
           })}
           </div>

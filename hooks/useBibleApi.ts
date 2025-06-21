@@ -1,151 +1,67 @@
+// Hook React para integração com a API da Bíblia Digital
 import { useState, useCallback } from 'react';
+import {
+  getBooks,
+  getVerseByReference,
+  type BibleBook,
+  type BibleReferenceResult
+} from '../services/bibleService';
 
-interface BibleVerse {
-  verse: number;
-  text: string;
-}
-
-interface BibleChapter {
-  chapter: number;
-  verses: BibleVerse[];
-}
-
-interface BibleApiResponse {
-  book: string;
-  chapters: BibleChapter[];
-  translation: string;
-}
-
-interface BibleApiError {
-  message: string;
-  details?: string;
-}
-
-interface UseBibleApiReturn {
-  fetchVerses: (reference: string, translation?: string) => Promise<BibleApiResponse>;
+interface UseBibleApiState {
   loading: boolean;
-  error: BibleApiError | null;
+  error: string | null;
+  books: BibleBook[];
+  currentReference: BibleReferenceResult | null;
 }
 
-// Supported translations
-export const BIBLE_TRANSLATIONS = {
-  ARA: 'ara', // Almeida Revista e Atualizada (Portuguese)
-  ACF: 'acf', // Almeida Corrigida Fiel (Portuguese)
-  NVI: 'nvi', // Nova Versão Internacional (Portuguese)
-  KJV: 'kjv', // King James Version (English)
-  ESV: 'esv', // English Standard Version (English)
-} as const;
+export function useBibleApi() {
+  const [state, setState] = useState<UseBibleApiState>({
+    loading: false,
+    error: null,
+    books: [],
+    currentReference: null
+  });
 
-export type BibleTranslation = typeof BIBLE_TRANSLATIONS[keyof typeof BIBLE_TRANSLATIONS];
+  const clearError = useCallback(() => {
+    setState(prev => ({ ...prev, error: null }));
+  }, []);
 
-const API_BASE_URL = 'https://bible-api.com';
+  const clearResults = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      currentReference: null
+    }));
+  }, []);
 
-export const useBibleApi = (): UseBibleApiReturn => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<BibleApiError | null>(null);
-
-  const parseReference = (reference: string) => {
-    // Parse references like "Genesis 1:1-3", "John 3:16", "Matthew 5:1-7:29"
-    const match = reference.match(/^(.+?)\s+(\d+)(?::(\d+))?(?:-(?:(\d+):)?(\d+))?$/);
-    if (!match) {
-      throw new Error('Invalid reference format. Use format like "Genesis 1:1" or "Genesis 1:1-3"');
-    }
-
-    const [, book, startChapter, startVerse, endChapter, endVerse] = match;
-    
-    return {
-      book: book.trim(),
-      startChapter: parseInt(startChapter),
-      startVerse: startVerse ? parseInt(startVerse) : null,
-      endChapter: endChapter ? parseInt(endChapter) : null,
-      endVerse: endVerse ? parseInt(endVerse) : null,
-    };
-  };
-
-  const fetchSingleChapter = async (book: string, chapter: number, translation: string): Promise<BibleChapter> => {
-    const url = `${API_BASE_URL}/${encodeURIComponent(book)}+${chapter}?translation=${translation}`;
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${book} ${chapter}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.verses || !Array.isArray(data.verses)) {
-      throw new Error(`Invalid response format for ${book} ${chapter}`);
-    }
-
-    return {
-      chapter: chapter,
-      verses: data.verses.map((verse: any) => ({
-        verse: verse.verse,
-        text: verse.text || ''
-      }))
-    };
-  };
-
-  const fetchVerses = useCallback(async (reference: string, translation: string = BIBLE_TRANSLATIONS.ARA): Promise<BibleApiResponse> => {
-    setLoading(true);
-    setError(null);
-
+  const fetchBooks = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const parsed = parseReference(reference);
-      const chapters: BibleChapter[] = [];
+      const books = await getBooks();
+      setState(prev => ({ ...prev, books, loading: false }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao buscar livros';
+      setState(prev => ({ ...prev, error: errorMessage, loading: false }));
+    }
+  }, []);
 
-      if (parsed.endChapter && parsed.endChapter !== parsed.startChapter) {
-        // Multi-chapter range
-        for (let chapterNum = parsed.startChapter; chapterNum <= parsed.endChapter; chapterNum++) {
-          const chapter = await fetchSingleChapter(parsed.book, chapterNum, translation);
-          
-          // Filter verses for first and last chapters if needed
-          if (chapterNum === parsed.startChapter && parsed.startVerse) {
-            chapter.verses = chapter.verses.filter(v => v.verse >= parsed.startVerse!);
-          }
-          if (chapterNum === parsed.endChapter && parsed.endVerse) {
-            chapter.verses = chapter.verses.filter(v => v.verse <= parsed.endVerse!);
-          }
-          
-          chapters.push(chapter);
-        }
-      } else {
-        // Single chapter
-        const chapter = await fetchSingleChapter(parsed.book, parsed.startChapter, translation);
-        
-        // Filter verses if specific range within chapter
-        if (parsed.startVerse || parsed.endVerse) {
-          const startVerse = parsed.startVerse || 1;
-          const endVerse = parsed.endVerse || Math.max(...chapter.verses.map(v => v.verse));
-          chapter.verses = chapter.verses.filter(v => v.verse >= startVerse && v.verse <= endVerse);
-        }
-        
-        chapters.push(chapter);
-      }
-
-      return {
-        book: parsed.book,
-        chapters,
-        translation
-      };
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      const apiError: BibleApiError = {
-        message: 'Failed to fetch Bible verses',
-        details: errorMessage
-      };
-      setError(apiError);
-      throw apiError;
-    } finally {
-      setLoading(false);
+  const fetchByReference = useCallback(async (reference: string, version: string = 'nvi') => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const result = await getVerseByReference(reference, version);
+      setState(prev => ({ ...prev, currentReference: result, loading: false }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao buscar referência';
+      setState(prev => ({ ...prev, error: errorMessage, loading: false }));
     }
   }, []);
 
   return {
-    fetchVerses,
-    loading,
-    error
+    ...state,
+    fetchBooks,
+    fetchByReference,
+    clearError,
+    clearResults
   };
-};
+}
 
 export default useBibleApi;
