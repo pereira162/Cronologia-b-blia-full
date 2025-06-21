@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - feature/mcp-context7-updates
       - design-preview
 
 jobs:
